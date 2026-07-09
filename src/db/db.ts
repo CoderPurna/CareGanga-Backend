@@ -33,6 +33,9 @@ const normalizeDatabaseUrl = (connectionString: string): string => {
 
 const pool = new Pool({
   connectionString: normalizeDatabaseUrl(process.env.DATABASE_URL),
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 const adapter = new PrismaPg(pool as any);

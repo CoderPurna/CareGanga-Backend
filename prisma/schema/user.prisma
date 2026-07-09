@@ -5,7 +5,7 @@ model User {
   phone                 String?                 @unique
   password              String
   avatar                String?
-  role                  Role                    @default(DONOR)
+  role                  Role                    @default(SUBADMIN)
   status                UserStatus              @default(ACTIVE)
   emailVerified         DateTime?
   createdAt             DateTime                @default(now())

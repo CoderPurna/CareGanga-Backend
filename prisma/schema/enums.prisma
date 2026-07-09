@@ -1,10 +1,6 @@
 enum Role {
-  SUPER_ADMIN
   ADMIN
-  NGO
-  COMPANY
-  DONOR
-  VOLUNTEER
+  SUBADMIN
 }
 
 enum UserStatus {
