@@ -1,0 +1,21 @@
+model NGO {
+  id                 String             @id @default(uuid())
+  userId             String
+  registrationNumber String             @unique
+  name               String
+  description        String?
+  mission            String?
+  vision             String?
+  website            String?
+  email              String?
+  phone              String?
+  logo               String?
+  coverImage         String?
+  addressId          String?
+  verificationStatus VerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
