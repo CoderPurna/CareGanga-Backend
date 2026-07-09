@@ -1,0 +1,45 @@
+model Campaign {
+  id           String             @id @default(uuid())
+  ngoId        String
+  title        String
+  slug         String             @unique
+  description  String
+  goalAmount   Float
+  raisedAmount Float              @default(0.0)
+  thumbnail    String?
+  banner       String?
+  status       CampaignStatus     @default(DRAFT)
+  startDate    DateTime
+  endDate      DateTime
+  publishedAt  DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  ngo          NGO                @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  donations    Donation[]
+  comments     Comment[]
+  updates      CampaignUpdate[]
+  documents    CampaignDocument[]
+}
+
+model CampaignUpdate {
+  id         String   @id @default(uuid())
+  campaignId String
+  title      String
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model CampaignDocument {
+  id         String   @id @default(uuid())
+  campaignId String
+  name       String
+  url        String
+  type       String
+  uploadedAt DateTime @default(now())
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}

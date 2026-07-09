@@ -1,0 +1,15 @@
+model VolunteerApplication {
+  id           String             @id @default(uuid())
+  userId       String
+  ngoId        String
+  skills       String[]           @default([])
+  availability String?
+  status       VerificationStatus @default(PENDING)
+  notes        String?
+  joinedAt     DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ngo          NGO                @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+}

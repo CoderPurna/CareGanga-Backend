@@ -1,6 +1,6 @@
 model NGO {
   id                 String             @id @default(uuid())
-  userId             String
+  userId             String             @unique
   registrationNumber String             @unique
   name               String
   description        String?
@@ -18,4 +18,23 @@ model NGO {
   updatedAt          DateTime           @updatedAt
 
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address            Address?           @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  campaigns          Campaign[]
+  volunteerApplications VolunteerApplication[]
+  tasks              Task[]
+  notices            Notice[]
+  gallery            Gallery[]
+  membership         Membership?
+  membershipApplications MembershipApplication[]
+  csrEnquiries       CSREnquiry[]
+}
+
+model Gallery {
+  id         String   @id @default(uuid())
+  ngoId      String
+  image      String
+  caption    String?
+  uploadedAt DateTime @default(now())
+
+  ngo        NGO      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
 }

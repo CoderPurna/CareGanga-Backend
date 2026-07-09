@@ -1,0 +1,33 @@
+model Donation {
+  id            String         @id @default(uuid())
+  campaignId    String
+  userId        String
+  companyId     String?
+  amount        Float
+  currency      String         @default("INR")
+  paymentMethod String
+  paymentStatus DonationStatus @default(PENDING)
+  transactionId String         @unique
+  anonymous     Boolean        @default(false)
+  message       String?
+  receiptUrl    String?
+  donatedAt     DateTime       @default(now())
+
+  campaign      Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+}
+
+model Payment {
+  id                   String         @id @default(uuid())
+  userId               String
+  amount               Float
+  currency             String         @default("INR")
+  gateway              String
+  gatewayTransactionId String         @unique
+  status               DonationStatus @default(PENDING)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

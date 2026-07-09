@@ -1,0 +1,17 @@
+model Address {
+  id         String   @id @default(uuid())
+  line1      String
+  line2      String?
+  city       String
+  district   String?
+  state      String
+  country    String
+  postalCode String
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ngos       NGO[]
+  companies  Company[]
+}

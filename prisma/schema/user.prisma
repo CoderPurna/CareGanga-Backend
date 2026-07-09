@@ -1,15 +1,39 @@
 model User {
-  id            String     @id @default(uuid())
-  name          String
-  email         String     @unique
-  phone         String?    @unique
-  password      String
-  avatar        String?
-  role          Role       @default(USER)
-  status        UserStatus @default(ACTIVE)
-  emailVerified DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id                    String                  @id @default(uuid())
+  name                  String
+  email                 String                  @unique
+  phone                 String?                 @unique
+  password              String
+  avatar                String?
+  role                  Role                    @default(DONOR)
+  status                UserStatus              @default(ACTIVE)
+  emailVerified         DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
 
-  ngos          NGO[]
+  ngo                   NGO?
+  company               Company?
+  donations             Donation[]
+  volunteerApplications VolunteerApplication[]
+  comments              Comment[]
+  activities            Activity[]
+  membershipApplications MembershipApplication[]
+  notifications         Notification[]
+  payments              Payment[]
+  sessions              Session[]
+  assignedTasks         Task[]                  @relation("AssignedTasks")
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  device           String?
+  ip               String?
+  expiresAt        DateTime
+  lastUsedAt       DateTime  @default(now())
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

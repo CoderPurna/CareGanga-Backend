@@ -1,0 +1,33 @@
+model Company {
+  id           String       @id @default(uuid())
+  userId       String       @unique
+  name         String
+  website      String?
+  email        String?
+  phone        String?
+  industry     String?
+  logo         String?
+  addressId    String?
+  verified     Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address      Address?     @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  csrEnquiries CSREnquiry[]
+  donations    Donation[]
+}
+
+model CSREnquiry {
+  id          String   @id @default(uuid())
+  companyId   String
+  ngoId       String
+  subject     String
+  description String
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ngo         NGO      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+}

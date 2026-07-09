@@ -1,0 +1,16 @@
+model Task {
+  id          String     @id @default(uuid())
+  ngoId       String
+  assignedTo  String?
+  title       String
+  description String?
+  priority    String     @default("NORMAL")
+  status      TaskStatus @default(TODO)
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  ngo          NGO       @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  assignedUser User?     @relation("AssignedTasks", fields: [assignedTo], references: [id], onDelete: SetNull)
+}

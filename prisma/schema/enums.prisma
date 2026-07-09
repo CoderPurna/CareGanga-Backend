@@ -1,7 +1,10 @@
 enum Role {
-  USER
-  NGO_ADMIN
+  SUPER_ADMIN
   ADMIN
+  NGO
+  COMPANY
+  DONOR
+  VOLUNTEER
 }
 
 enum UserStatus {
@@ -14,4 +17,32 @@ enum VerificationStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum DonationStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
 }

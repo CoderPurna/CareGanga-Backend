@@ -1,0 +1,42 @@
+model MembershipTier {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  duration    Int
+  benefits    String[] @default([])
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships            Membership[]
+  membershipApplications MembershipApplication[]
+}
+
+model Membership {
+  id         String           @id @default(uuid())
+  ngoId      String           @unique
+  tierId     String
+  startDate  DateTime         @default(now())
+  expiryDate DateTime
+  status     MembershipStatus @default(PENDING)
+  paymentId  String?
+
+  ngo        NGO              @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  tier       MembershipTier   @relation(fields: [tierId], references: [id], onDelete: Restrict)
+}
+
+model MembershipApplication {
+  id          String             @id @default(uuid())
+  userId      String
+  ngoId       String
+  tierId      String
+  status      MembershipStatus   @default(PENDING)
+  remarks     String?
+  submittedAt DateTime           @default(now())
+  reviewedAt  DateTime?
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ngo         NGO                @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  tier        MembershipTier     @relation(fields: [tierId], references: [id], onDelete: Restrict)
+}
