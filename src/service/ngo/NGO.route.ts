@@ -5,6 +5,8 @@ import {
   getNgoProfileById,
   updateNgoProfile,
   deleteNgoProfile,
+  getSharedNgoProfile,
+  renderSharedProfileRedirect,
 } from "./NGO.controller.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { validate } from "../../middlewares/validation.middleware.js";
@@ -14,6 +16,8 @@ const router = Router();
 
 // Public routes
 router.get("/:id", getNgoProfileById);
+router.get("/share/:shortName", getSharedNgoProfile as any);
+router.get("/share/redirect/:shortName", renderSharedProfileRedirect as any);
 
 // Protected routes (require valid access token)
 router.post("/", authMiddleware as any, validate(createNgoSchema), createNgoProfile as any);

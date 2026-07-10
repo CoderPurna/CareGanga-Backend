@@ -14,6 +14,7 @@ import membershipRouter from "./service/memberships/Membership.route.js";
 import volunteerRouter from "./service/volunteers/Volunteer.route.js";
 import csrRouter from "./service/csr/CSR.route.js";
 import taskRouter from "./service/tasks/Task.route.js";
+import publicRouter from "./service/public/Public.route.js";
 import { HTTP_STATUS } from "./utils/constants.js";
 
 const app = express();
@@ -46,6 +47,7 @@ app.use("/api/v1/memberships", membershipRouter);
 app.use("/api/v1/volunteers", volunteerRouter);
 app.use("/api/v1/csr", csrRouter);
 app.use("/api/v1/tasks", taskRouter);
+app.use("/api/v1/public", publicRouter);
 
 app.use("/api/v1/health", (req: Request, res: Response) => {
   res.status(HTTP_STATUS.OK).json({

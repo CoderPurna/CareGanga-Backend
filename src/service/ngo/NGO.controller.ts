@@ -462,3 +462,33 @@ export const deleteNgoProfile = asyncHandler(async (req: AuthenticatedRequest, r
     .status(HTTP_STATUS.OK)
     .json(new ApiResponse(HTTP_STATUS.OK, "NGO profile deleted successfully", {}));
 });
+
+/**
+ * 6. Get Shared NGO Profile by shortName
+ */
+export const getSharedNgoProfile = asyncHandler(async (req: Request, res: Response) => {
+  const shortName = req.params.shortName as string;
+
+  const ngo = await db.nGO.findFirst({
+    where: { shortName: { equals: shortName, mode: "insensitive" } },
+    include: { address: true },
+  });
+
+  if (!ngo) {
+    throw new ApiError(HTTP_STATUS.NOT_FOUND, "NGO profile not found");
+  }
+
+  return res
+    .status(HTTP_STATUS.OK)
+    .json(new ApiResponse(HTTP_STATUS.OK, "Shared NGO profile retrieved", ngo));
+});
+
+/**
+ * 7. Redirect to Frontend Shared Profile page
+ */
+export const renderSharedProfileRedirect = asyncHandler(async (req: Request, res: Response) => {
+  const shortName = req.params.shortName as string;
+  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+
+  return res.redirect(`${clientUrl}/ngo/${shortName}`);
+});
