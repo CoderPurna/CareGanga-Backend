@@ -4,12 +4,13 @@ import cookieParser from "cookie-parser";
 // import helmet from "helmet";
 
 import { errorHandler } from "./middlewares/error.middleware.js";
-import userRouter from "./user/User.route.js";
-import campaignRouter from "./campaigns/Campaign.route.js";
-import ngoRouter from "./ngo/NGO.route.js";
-import donationRouter from "./donations/Donation.route.js";
-import uploadRouter from "./uploads/Upload.route.js";
-import paymentRouter from "./payments/Payment.route.js";
+import userRouter from "./service/user/User.route.js";
+import campaignRouter from "./service/campaigns/Campaign.route.js";
+import ngoRouter from "./service/ngo/NGO.route.js";
+import donationRouter from "./service/donations/Donation.route.js";
+import uploadRouter from "./service/uploads/Upload.route.js";
+import paymentRouter from "./service/payments/Payment.route.js";
+import membershipRouter from "./service/memberships/Membership.route.js";
 import { HTTP_STATUS } from "./utils/constants.js";
 
 const app = express();
@@ -38,6 +39,7 @@ app.use("/api/v1/ngos", ngoRouter);
 app.use("/api/v1/donations", donationRouter);
 app.use("/api/v1/uploads", uploadRouter);
 app.use("/api/v1/payments", paymentRouter);
+app.use("/api/v1/memberships", membershipRouter);
 
 app.use("/api/v1/health", (req: Request, res: Response) => {
   res.status(HTTP_STATUS.OK).json({

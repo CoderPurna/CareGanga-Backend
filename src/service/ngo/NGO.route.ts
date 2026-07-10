@@ -6,8 +6,8 @@ import {
   updateNgoProfile,
   deleteNgoProfile,
 } from "./NGO.controller.js";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
-import { validate } from "../middlewares/validation.middleware.js";
+import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { validate } from "../../middlewares/validation.middleware.js";
 import { createNgoSchema, updateNgoSchema } from "./NGO.validation.js";
 
 const router = Router();

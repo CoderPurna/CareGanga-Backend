@@ -6,8 +6,8 @@ import {
   updateDonationStatus,
   getDonationAnalytics,
 } from "./Donation.controller.js";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
-import { validate } from "../middlewares/validation.middleware.js";
+import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { validate } from "../../middlewares/validation.middleware.js";
 import { createDonationSchema, updateDonationStatusSchema } from "./Donation.validation.js";
 
 const router = Router();

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { VALIDATION_PATTERNS } from "../utils/constants.js";
+import { VALIDATION_PATTERNS } from "../../utils/constants.js";
 
 /**
  * Address Schema matching UI Address form
