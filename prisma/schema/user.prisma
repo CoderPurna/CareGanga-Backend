@@ -22,6 +22,9 @@ model User {
   payments              Payment[]
   sessions              Session[]
   assignedTasks         Task[]                  @relation("AssignedTasks")
+  permissions           Permission?
+  ngoId                 String?
+  ngoRelation           NGO?                    @relation("NGOStaff", fields: [ngoId], references: [id], onDelete: Cascade)
 }
 
 model Session {

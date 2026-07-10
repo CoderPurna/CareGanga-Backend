@@ -13,17 +13,30 @@ import { CampaignStatus } from "../generated/prisma/index.js";
  */
 export const createCampaign = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
+  const userRole = req.user?.role;
 
-  // Retrieve the NGO profile linked to the authenticated user
-  const ngoProfile = await db.nGO.findUnique({
-    where: { userId },
-  });
+  let ngoProfile;
+
+  // Retrieve the NGO profile depending on the role
+  if (userRole === "ADMIN") {
+    ngoProfile = await db.nGO.findUnique({
+      where: { userId },
+    });
+  } else if (userRole === "SUBADMIN") {
+    const userNgoId = (req.user as any)?.ngoId;
+    if (userNgoId) {
+      ngoProfile = await db.nGO.findUnique({
+        where: { id: userNgoId },
+      });
+    }
+  }
 
   if (!ngoProfile) {
     throw new ApiError(HTTP_STATUS.NOT_FOUND, "NGO profile not found");
   }
 
-  const { title, description, goalAmount, startDate, endDate, thumbnail, banner, status } = req.body;
+  const { title, description, goalAmount, startDate, endDate, thumbnail, banner, status } =
+    req.body;
 
   // Generate a unique slug for the campaign
   const randomSuffix = crypto.randomBytes(3).toString("hex");
@@ -132,6 +145,7 @@ export const getCampaign = asyncHandler(async (req: Request, res: Response) => {
 export const updateCampaign = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id as string;
   const userId = req.user?.id;
+  const userRole = req.user?.role;
 
   // Retrieve campaign and verify NGO ownership
   const campaign: any = await db.campaign.findUnique({
@@ -143,11 +157,17 @@ export const updateCampaign = asyncHandler(async (req: AuthenticatedRequest, res
     throw new ApiError(HTTP_STATUS.NOT_FOUND, "Campaign not found");
   }
 
-  if (campaign.ngo.userId !== userId) {
+  // Verify ownership based on user role (Admin vs Subadmin)
+  const isAuthorized =
+    (userRole === "ADMIN" && campaign.ngo.userId === userId) ||
+    (userRole === "SUBADMIN" && campaign.ngoId === (req.user as any)?.ngoId);
+
+  if (!isAuthorized) {
     throw new ApiError(HTTP_STATUS.FORBIDDEN, "Not authorized to update this campaign");
   }
 
-  const { title, description, goalAmount, startDate, endDate, thumbnail, banner, status } = req.body;
+  const { title, description, goalAmount, startDate, endDate, thumbnail, banner, status } =
+    req.body;
 
   // Re-generate slug if the title is changing
   let slug = undefined;
@@ -185,6 +205,7 @@ export const updateCampaign = asyncHandler(async (req: AuthenticatedRequest, res
 export const deleteCampaign = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id as string;
   const userId = req.user?.id;
+  const userRole = req.user?.role;
 
   // Retrieve campaign and verify NGO ownership
   const campaign: any = await db.campaign.findUnique({
@@ -196,7 +217,12 @@ export const deleteCampaign = asyncHandler(async (req: AuthenticatedRequest, res
     throw new ApiError(HTTP_STATUS.NOT_FOUND, "Campaign not found");
   }
 
-  if (campaign.ngo.userId !== userId) {
+  // Verify ownership based on user role (Admin vs Subadmin)
+  const isAuthorized =
+    (userRole === "ADMIN" && campaign.ngo.userId === userId) ||
+    (userRole === "SUBADMIN" && campaign.ngoId === (req.user as any)?.ngoId);
+
+  if (!isAuthorized) {
     throw new ApiError(HTTP_STATUS.FORBIDDEN, "Not authorized to delete this campaign");
   }
 

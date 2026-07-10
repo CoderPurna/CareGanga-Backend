@@ -13,14 +13,9 @@ const normalizeDatabaseUrl = (connectionString: string): string => {
   try {
     const connectionUrl = new URL(connectionString);
     const sslMode = connectionUrl.searchParams.get("sslmode")?.toLowerCase();
-    const useLibpqCompat =
-      connectionUrl.searchParams.get("uselibpqcompat") === "true";
+    const useLibpqCompat = connectionUrl.searchParams.get("uselibpqcompat") === "true";
 
-    if (
-      !useLibpqCompat &&
-      sslMode &&
-      ["prefer", "require", "verify-ca"].includes(sslMode)
-    ) {
+    if (!useLibpqCompat && sslMode && ["prefer", "require", "verify-ca"].includes(sslMode)) {
       // Preserve pg v8 behavior explicitly to avoid sslmode alias warnings.
       connectionUrl.searchParams.set("sslmode", "verify-full");
     }

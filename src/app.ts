@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import userRouter from "./user/User.route.js";
 import campaignRouter from "./campaigns/Campaign.route.js";
+import ngoRouter from "./ngo/NGO.route.js";
 import { HTTP_STATUS } from "./utils/constants.js";
 
 const app = express();
@@ -25,11 +26,12 @@ app.use(
       : [process.env.CLIENT_URL || "http://localhost:5173"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  }),
+  })
 );
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/campaigns", campaignRouter);
+app.use("/api/v1/ngos", ngoRouter);
 
 app.use("/api/v1/health", (req: Request, res: Response) => {
   res.status(HTTP_STATUS.OK).json({

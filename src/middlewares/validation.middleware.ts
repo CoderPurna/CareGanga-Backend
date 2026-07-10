@@ -17,14 +17,8 @@ export const validate = (schema: ZodSchema) => {
           field: err.path.join("."),
           message: err.message,
         }));
-        
-        return next(
-          new ApiError(
-            HTTP_STATUS.BAD_REQUEST,
-            "Validation failed",
-            errorMessages
-          )
-        );
+
+        return next(new ApiError(HTTP_STATUS.BAD_REQUEST, "Validation failed", errorMessages));
       }
       next(error);
     }

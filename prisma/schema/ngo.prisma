@@ -17,6 +17,45 @@ model NGO {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
+  // Basic Info fields
+  shortName          String?
+  establishmentYear  String?
+  registrationDate   DateTime?
+  ngoType            String?
+
+  // Contact fields
+  whatsappNumber     String?
+  googleMapUrl       String?
+
+  // Legal & Verification fields
+  registrationCertificate String?
+  panCard                 String?
+  certificate12A          String?
+  certificate80G          String?
+  csr1Certificate         String?
+  fcraNumber              String?
+  fcraCertificate         String?
+
+  // Social Media fields
+  facebookUrl        String?
+  instagramUrl       String?
+  linkedInUrl        String?
+  youtubeUrl         String?
+  twitterUrl         String?
+
+  // Team fields
+  founderName        String?
+  presidentName      String?
+  secretaryName      String?
+  treasurerName      String?
+  teamMembers        Json?
+
+  // Work Info fields
+  focusAreas         String[]
+  operationalAreas   String?
+  beneficiariesServed String?
+  volunteersCount    String?
+
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   address            Address?           @relation(fields: [addressId], references: [id], onDelete: SetNull)
   campaigns          Campaign[]
@@ -27,6 +66,7 @@ model NGO {
   membership         Membership?
   membershipApplications MembershipApplication[]
   csrEnquiries       CSREnquiry[]
+  staff                 User[]             @relation("NGOStaff")
 }
 
 model Gallery {

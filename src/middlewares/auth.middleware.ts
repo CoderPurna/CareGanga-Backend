@@ -14,17 +14,21 @@ export interface AuthenticatedRequest extends Request {
 export const authMiddleware = asyncHandler(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const token =
-        req.cookies?.accessToken ||
-        req.header("Authorization")?.replace("Bearer ", "");
+      const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
 
       if (!token) {
-        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, "Unauthorized request: Access token not found");
+        throw new ApiError(
+          HTTP_STATUS.UNAUTHORIZED,
+          "Unauthorized request: Access token not found"
+        );
       }
 
       const secret = process.env.ACCESS_TOKEN_SECRET;
       if (!secret) {
-        throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Server configuration error: Access token secret is missing");
+        throw new ApiError(
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          "Server configuration error: Access token secret is missing"
+        );
       }
 
       const decoded = jwt.verify(token, secret) as { id: string };
@@ -40,6 +44,7 @@ export const authMiddleware = asyncHandler(
           role: true,
           status: true,
           emailVerified: true,
+          ngoId: true,
           createdAt: true,
           updatedAt: true,
         },
