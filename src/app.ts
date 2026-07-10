@@ -7,6 +7,9 @@ import { errorHandler } from "./middlewares/error.middleware.js";
 import userRouter from "./user/User.route.js";
 import campaignRouter from "./campaigns/Campaign.route.js";
 import ngoRouter from "./ngo/NGO.route.js";
+import donationRouter from "./donations/Donation.route.js";
+import uploadRouter from "./uploads/Upload.route.js";
+import paymentRouter from "./payments/Payment.route.js";
 import { HTTP_STATUS } from "./utils/constants.js";
 
 const app = express();
@@ -32,6 +35,9 @@ app.use(
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/campaigns", campaignRouter);
 app.use("/api/v1/ngos", ngoRouter);
+app.use("/api/v1/donations", donationRouter);
+app.use("/api/v1/uploads", uploadRouter);
+app.use("/api/v1/payments", paymentRouter);
 
 app.use("/api/v1/health", (req: Request, res: Response) => {
   res.status(HTTP_STATUS.OK).json({
