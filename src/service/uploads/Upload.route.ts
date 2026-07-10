@@ -1,11 +1,11 @@
 import { Router, Response } from "express";
-import { authMiddleware, AuthenticatedRequest } from "../middlewares/auth.middleware.js";
-import { upload } from "../middlewares/multer.middleware.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import { ApiError } from "../utils/api-error.js";
-import { ApiResponse } from "../utils/api-response.js";
-import { asyncHandler } from "../utils/async-handler.js";
-import { HTTP_STATUS } from "../utils/constants.js";
+import { authMiddleware, AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
+import { upload } from "../../middlewares/multer.middleware.js";
+import { uploadOnCloudinary } from "../../utils/cloudinary.js";
+import { ApiError } from "../../utils/api-error.js";
+import { ApiResponse } from "../../utils/api-response.js";
+import { asyncHandler } from "../../utils/async-handler.js";
+import { HTTP_STATUS } from "../../utils/constants.js";
 
 const router = Router();
 
@@ -31,10 +31,7 @@ router.post(
     const cloudinaryResponse = await uploadOnCloudinary(file.path, folder);
 
     if (!cloudinaryResponse) {
-      throw new ApiError(
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        "Failed to upload file to Cloudinary"
-      );
+      throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to upload file to Cloudinary");
     }
 
     return res.status(HTTP_STATUS.OK).json(

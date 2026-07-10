@@ -2,14 +2,14 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { db } from "../db/db.js";
-import { ApiError } from "../utils/api-error.js";
-import { ApiResponse } from "../utils/api-response.js";
-import { asyncHandler } from "../utils/async-handler.js";
-import { HTTP_STATUS } from "../utils/constants.js";
-import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
-import { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
-import { Role } from "../generated/prisma/index.js";
+import { db } from "../../db/db.js";
+import { ApiError } from "../../utils/api-error.js";
+import { ApiResponse } from "../../utils/api-response.js";
+import { asyncHandler } from "../../utils/async-handler.js";
+import { HTTP_STATUS } from "../../utils/constants.js";
+import { generateAccessToken, generateRefreshToken } from "../../utils/token.js";
+import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
+import { Role } from "../../generated/prisma/index.js";
 
 const cookieOptions = {
   httpOnly: true,

@@ -6,9 +6,9 @@ import {
   updateCampaign,
   deleteCampaign,
 } from "./Campaign.controller.js";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
-import { validate } from "../middlewares/validation.middleware.js";
-import { checkPermission } from "../middlewares/permission.middleware.js";
+import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { validate } from "../../middlewares/validation.middleware.js";
+import { checkPermission } from "../../middlewares/permission.middleware.js";
 import { createCampaignSchema, updateCampaignSchema } from "./Campaign.validation.js";
 
 const router = Router();

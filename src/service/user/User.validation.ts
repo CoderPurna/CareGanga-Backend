@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { Role } from "../generated/prisma/index.js";
-import { VALIDATION_PATTERNS } from "../utils/constants.js";
+import { Role } from "../../generated/prisma/index.js";
+import { VALIDATION_PATTERNS } from "../../utils/constants.js";
 
 /**
  * Schema for User Signup / Registration

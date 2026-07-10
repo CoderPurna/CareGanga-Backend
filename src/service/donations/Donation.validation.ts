@@ -4,9 +4,7 @@ import { z } from "zod";
  * Zod Schema for Creating a Donation
  */
 export const createDonationSchema = z.object({
-  campaignId: z
-    .string({ message: "Campaign ID is required" })
-    .uuid("Invalid Campaign ID format"),
+  campaignId: z.string({ message: "Campaign ID is required" }).uuid("Invalid Campaign ID format"),
   amount: z
     .number({ message: "Amount is required" })
     .positive("Donation amount must be a positive number")
@@ -26,10 +24,7 @@ export const createDonationSchema = z.object({
     .string({ message: "Transaction ID is required" })
     .trim()
     .min(3, "Transaction ID must be at least 3 characters long"),
-  anonymous: z
-    .boolean()
-    .default(false)
-    .optional(),
+  anonymous: z.boolean().default(false).optional(),
   message: z
     .string()
     .trim()

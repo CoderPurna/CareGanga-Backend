@@ -1,13 +1,13 @@
 import { Response } from "express";
 import crypto from "crypto";
-import { razorpay } from "../utils/razorpay.js";
-import { db } from "../db/db.js";
-import { ApiError } from "../utils/api-error.js";
-import { ApiResponse } from "../utils/api-response.js";
-import { asyncHandler } from "../utils/async-handler.js";
-import { HTTP_STATUS } from "../utils/constants.js";
-import { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
-import { DonationStatus } from "../generated/prisma/index.js";
+import { razorpay } from "../../utils/razorpay.js";
+import { db } from "../../db/db.js";
+import { ApiError } from "../../utils/api-error.js";
+import { ApiResponse } from "../../utils/api-response.js";
+import { asyncHandler } from "../../utils/async-handler.js";
+import { HTTP_STATUS } from "../../utils/constants.js";
+import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
+import { DonationStatus } from "../../generated/prisma/index.js";
 
 /**
  * 1. Create Razorpay Order
@@ -154,7 +154,13 @@ export const verifyPayment = asyncHandler(async (req: AuthenticatedRequest, res:
     return { payment, donation };
   });
 
-  return res.status(HTTP_STATUS.OK).json(
-    new ApiResponse(HTTP_STATUS.OK, "Payment verified and donation registered successfully", result)
-  );
+  return res
+    .status(HTTP_STATUS.OK)
+    .json(
+      new ApiResponse(
+        HTTP_STATUS.OK,
+        "Payment verified and donation registered successfully",
+        result
+      )
+    );
 });

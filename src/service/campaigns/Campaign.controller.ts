@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
-import { db } from "../db/db.js";
-import { ApiError } from "../utils/api-error.js";
-import { ApiResponse } from "../utils/api-response.js";
-import { asyncHandler } from "../utils/async-handler.js";
-import { HTTP_STATUS } from "../utils/constants.js";
-import { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
-import { CampaignStatus } from "../generated/prisma/index.js";
+import { db } from "../../db/db.js";
+import { ApiError } from "../../utils/api-error.js";
+import { ApiResponse } from "../../utils/api-response.js";
+import { asyncHandler } from "../../utils/async-handler.js";
+import { HTTP_STATUS } from "../../utils/constants.js";
+import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
+import { CampaignStatus } from "../../generated/prisma/index.js";
 
 /**
  * 1. Create Campaign

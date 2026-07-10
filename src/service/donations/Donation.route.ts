@@ -17,6 +17,11 @@ router.post("/", authMiddleware as any, validate(createDonationSchema), createDo
 router.get("/", authMiddleware as any, getDonationsList as any);
 router.get("/analytics/summary", authMiddleware as any, getDonationAnalytics as any);
 router.get("/:id", authMiddleware as any, getDonationDetails as any);
-router.put("/:id/status", authMiddleware as any, validate(updateDonationStatusSchema), updateDonationStatus as any);
+router.put(
+  "/:id/status",
+  authMiddleware as any,
+  validate(updateDonationStatusSchema),
+  updateDonationStatus as any
+);
 
 export default router;

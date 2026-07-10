@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CampaignStatus } from "../generated/prisma/index.js";
+import { CampaignStatus } from "../../generated/prisma/index.js";
 
 /**
  * Schema for Creating a Campaign
