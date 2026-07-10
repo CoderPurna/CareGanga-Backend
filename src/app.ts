@@ -12,6 +12,7 @@ import uploadRouter from "./service/uploads/Upload.route.js";
 import paymentRouter from "./service/payments/Payment.route.js";
 import membershipRouter from "./service/memberships/Membership.route.js";
 import volunteerRouter from "./service/volunteers/Volunteer.route.js";
+import csrRouter from "./service/csr/CSR.route.js";
 import { HTTP_STATUS } from "./utils/constants.js";
 
 const app = express();
@@ -42,6 +43,7 @@ app.use("/api/v1/uploads", uploadRouter);
 app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/memberships", membershipRouter);
 app.use("/api/v1/volunteers", volunteerRouter);
+app.use("/api/v1/csr", csrRouter);
 
 app.use("/api/v1/health", (req: Request, res: Response) => {
   res.status(HTTP_STATUS.OK).json({
