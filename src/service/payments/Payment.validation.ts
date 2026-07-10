@@ -40,3 +40,29 @@ export const verifyPaymentSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
+
+/**
+ * Zod Schema for Simulating a Successful Payment (Dev)
+ */
+export const simulateSuccessSchema = z.object({
+  campaignId: z.string({ message: "Campaign ID is required" }).uuid("Invalid Campaign ID format"),
+  amount: z
+    .number({ message: "Amount is required" })
+    .positive("Amount must be a positive number")
+    .min(1, "Amount must be at least 1 INR"),
+  anonymous: z.boolean().default(false).optional(),
+  message: z
+    .string()
+    .trim()
+    .max(500, "Message cannot exceed 500 characters")
+    .optional()
+    .or(z.literal("")),
+});
+
+/**
+ * Zod Schema for Requesting a Refund
+ */
+export const refundPaymentSchema = z.object({
+  paymentId: z.string({ message: "Payment ID is required" }).uuid("Invalid Payment ID format"),
+  amount: z.number().positive("Refund amount must be positive").optional(),
+});

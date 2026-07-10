@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import crypto from "crypto";
 import { razorpay } from "../../utils/razorpay.js";
 import { db } from "../../db/db.js";
@@ -163,4 +163,328 @@ export const verifyPayment = asyncHandler(async (req: AuthenticatedRequest, res:
         result
       )
     );
+});
+
+/**
+ * 3. Simulate Successful Payment (Dev Mode Only)
+ * Endpoint: POST /api/v1/payments/simulate-success
+ */
+export const simulateSuccess = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new ApiError(HTTP_STATUS.UNAUTHORIZED, "Authentication required");
+  }
+
+  const { campaignId, amount, anonymous = false, message } = req.body;
+
+  // Verify campaign exists
+  const campaign = await db.campaign.findUnique({
+    where: { id: campaignId },
+  });
+
+  if (!campaign) {
+    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Campaign not found");
+  }
+
+  const mockTransactionId = `mock_txn_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+
+  // Find corporate company association
+  const companyProfile = await db.company.findUnique({
+    where: { userId },
+  });
+
+  const result = await db.$transaction(async (tx) => {
+    const payment = await tx.payment.create({
+      data: {
+        userId,
+        amount,
+        currency: "INR",
+        gateway: "simulated_gateway",
+        gatewayTransactionId: mockTransactionId,
+        status: DonationStatus.SUCCESS,
+      },
+    });
+
+    const donation = await tx.donation.create({
+      data: {
+        campaignId,
+        userId,
+        companyId: companyProfile ? companyProfile.id : null,
+        amount,
+        currency: "INR",
+        paymentMethod: "simulated",
+        paymentStatus: DonationStatus.SUCCESS,
+        transactionId: mockTransactionId,
+        anonymous,
+        message: message || null,
+      },
+      include: {
+        campaign: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
+
+    return { payment, donation };
+  });
+
+  return res
+    .status(HTTP_STATUS.CREATED)
+    .json(
+      new ApiResponse(
+        HTTP_STATUS.CREATED,
+        "Development payment simulation successful and donation registered",
+        result
+      )
+    );
+});
+
+/**
+ * 4. Get Printable Receipt Details
+ * Endpoint: GET /api/v1/payments/receipt/:id
+ */
+export const getReceiptPdf = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const donationId = req.params.id as string;
+
+  const donation = await db.donation.findUnique({
+    where: { id: donationId },
+    include: {
+      campaign: {
+        include: {
+          ngo: {
+            select: {
+              name: true,
+              registrationNumber: true,
+              certificate80G: true,
+            },
+          },
+        },
+      },
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!donation) {
+    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Donation record not found");
+  }
+
+  const isOwner = donation.userId === req.user?.id;
+  const isAdmin = req.user?.role === "ADMIN";
+
+  if (!isOwner && !isAdmin) {
+    throw new ApiError(
+      HTTP_STATUS.FORBIDDEN,
+      "Access denied: You are not authorized to view this receipt"
+    );
+  }
+
+  const receiptDetails = {
+    receiptNumber: `REC-${donation.id.substring(0, 8).toUpperCase()}`,
+    date: donation.donatedAt,
+    donorName: donation.anonymous && !isAdmin ? "Anonymous Donor" : (donation as any).user.name,
+    donorEmail: donation.anonymous && !isAdmin ? "N/A" : (donation as any).user.email,
+    campaignTitle: donation.campaign.title,
+    ngoName: donation.campaign.ngo.name,
+    ngoRegistration: donation.campaign.ngo.registrationNumber,
+    amount: donation.amount,
+    currency: donation.currency,
+    paymentMethod: donation.paymentMethod,
+    transactionId: donation.transactionId,
+    status: donation.paymentStatus,
+    is80GEligible: !!donation.campaign.ngo.certificate80G,
+    certificate80G: donation.campaign.ngo.certificate80G || "N/A",
+  };
+
+  return res
+    .status(HTTP_STATUS.OK)
+    .json(new ApiResponse(HTTP_STATUS.OK, "Receipt details fetched successfully", receiptDetails));
+});
+
+/**
+ * 5. Get All Donations (Admin Dashboard)
+ * Endpoint: GET /api/v1/payments/admin/donations
+ */
+export const getAllDonationsAdmin = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+
+    const total = await db.donation.count();
+    const donations = await db.donation.findMany({
+      skip,
+      take: limit,
+      include: {
+        campaign: {
+          select: {
+            title: true,
+            ngo: {
+              select: { name: true },
+            },
+          },
+        },
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { donatedAt: "desc" },
+    });
+
+    return res.status(HTTP_STATUS.OK).json(
+      new ApiResponse(HTTP_STATUS.OK, "All donations fetched successfully for admin", {
+        donations,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      })
+    );
+  }
+);
+
+/**
+ * 6. Get My Donations (Donor History)
+ * Endpoint: GET /api/v1/payments/my-donations
+ */
+export const getMyDonationsDonor = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(HTTP_STATUS.UNAUTHORIZED, "Authentication required");
+    }
+
+    const donations = await db.donation.findMany({
+      where: { userId },
+      include: {
+        campaign: {
+          select: {
+            title: true,
+            thumbnail: true,
+          },
+        },
+      },
+      orderBy: { donatedAt: "desc" },
+    });
+
+    return res
+      .status(HTTP_STATUS.OK)
+      .json(new ApiResponse(HTTP_STATUS.OK, "Donor history fetched successfully", donations));
+  }
+);
+
+/**
+ * 7. Get Donation Stats (Admin Panel Summary)
+ * Endpoint: GET /api/v1/payments/admin/stats
+ */
+export const getDonationStatsAdmin = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    // Aggregate stats
+    const totalAmountResult = await db.donation.aggregate({
+      where: { paymentStatus: DonationStatus.SUCCESS },
+      _sum: {
+        amount: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    // Unique donors count
+    const uniqueDonorsResult = await db.donation.groupBy({
+      by: ["userId"],
+      where: { paymentStatus: DonationStatus.SUCCESS },
+    });
+
+    const stats = {
+      totalRevenue: totalAmountResult._sum.amount || 0,
+      totalDonationsCount: totalAmountResult._count.id || 0,
+      uniqueDonorsCount: uniqueDonorsResult.length,
+      currency: "INR",
+    };
+
+    return res
+      .status(HTTP_STATUS.OK)
+      .json(new ApiResponse(HTTP_STATUS.OK, "Donation analytics retrieved successfully", stats));
+  }
+);
+
+/**
+ * 8. Refund Donation (Admin Only)
+ * Endpoint: POST /api/v1/payments/admin/refund
+ */
+export const refundDonation = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { paymentId, amount } = req.body;
+
+  // 1. Fetch target Donation
+  const donation = await db.donation.findUnique({
+    where: { id: paymentId },
+  });
+
+  if (!donation) {
+    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Donation record not found");
+  }
+
+  if (donation.paymentStatus === DonationStatus.REFUNDED) {
+    throw new ApiError(HTTP_STATUS.BAD_REQUEST, "This donation has already been refunded");
+  }
+
+  if (donation.paymentStatus !== DonationStatus.SUCCESS) {
+    throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Only successful donations can be refunded");
+  }
+
+  // 2. Perform Razorpay Refund request if simulated payment is not being used
+  let razorpayRefund = null;
+  if (donation.paymentMethod === "razorpay" && donation.transactionId) {
+    try {
+      const refundOptions: any = {};
+      if (amount) {
+        refundOptions.amount = Math.round(amount * 100); // in paise
+      }
+      razorpayRefund = await (razorpay.payments as any).refund(
+        donation.transactionId,
+        refundOptions
+      );
+    } catch (error: any) {
+      console.error("Razorpay refund creation failed: ", error);
+      throw new ApiError(
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        error?.message || "Failed to process refund with Razorpay"
+      );
+    }
+  }
+
+  // 3. Update status in Database inside a transaction
+  const result = await db.$transaction(async (tx) => {
+    const updatedDonation = await tx.donation.update({
+      where: { id: paymentId },
+      data: {
+        paymentStatus: DonationStatus.REFUNDED,
+      },
+    });
+
+    const updatedPayment = await tx.payment.updateMany({
+      where: { gatewayTransactionId: donation.transactionId },
+      data: {
+        status: DonationStatus.REFUNDED,
+      },
+    });
+
+    return { donation: updatedDonation, payment: updatedPayment, razorpayRefund };
+  });
+
+  return res
+    .status(HTTP_STATUS.OK)
+    .json(new ApiResponse(HTTP_STATUS.OK, "Donation refunded successfully", result));
 });
