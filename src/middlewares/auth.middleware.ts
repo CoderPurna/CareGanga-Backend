@@ -3,12 +3,12 @@ import jwt from "jsonwebtoken";
 import { db } from "../db/db.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
-import { User } from "../generated/prisma/index.js";
+import { User, Permission } from "../generated/prisma/index.js";
 import { Request } from "express";
 import { HTTP_STATUS } from "../utils/constants.js";
 
 export interface AuthenticatedRequest extends Request {
-  user?: Omit<User, "password">;
+  user?: Omit<User, "password"> & { permissions?: Permission | null };
 }
 
 export const authMiddleware = asyncHandler(
@@ -47,6 +47,7 @@ export const authMiddleware = asyncHandler(
           ngoId: true,
           createdAt: true,
           updatedAt: true,
+          permissions: true,
         },
       });
 

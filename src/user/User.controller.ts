@@ -146,6 +146,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       status: true,
       createdAt: true,
       updatedAt: true,
+      permissions: true,
     },
   });
 
