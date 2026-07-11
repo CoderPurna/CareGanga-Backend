@@ -1,7 +1,6 @@
 model VolunteerApplication {
   id           String             @id @default(uuid())
   userId       String
-  ngoId        String
   skills       String[]           @default([])
   availability String?
   status       VerificationStatus @default(PENDING)
@@ -10,6 +9,13 @@ model VolunteerApplication {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
+  profilePhoto String?
+  dob          DateTime?
+  bloodGroup   String?
+  addressId    String?
+  aadhaarFront String?
+  aadhaarBack  String?
+
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ngo          NGO                @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  address      Address?           @relation(fields: [addressId], references: [id], onDelete: SetNull)
 }

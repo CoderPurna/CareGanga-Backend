@@ -59,7 +59,6 @@ model NGO {
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   address            Address?           @relation(fields: [addressId], references: [id], onDelete: SetNull)
   campaigns          Campaign[]
-  volunteerApplications VolunteerApplication[]
   tasks              Task[]
   notices            Notice[]
   gallery            Gallery[]

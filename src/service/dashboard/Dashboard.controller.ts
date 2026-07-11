@@ -573,7 +573,7 @@ export const getExportData = asyncHandler(async (req: AuthenticatedRequest, res:
       id: v.id,
       volunteerName: v.user?.name || "",
       volunteerEmail: v.user?.email || "",
-      ngoId: v.ngoId,
+      ngoId: null,
       status: v.status,
       skills: v.skills.join("; "),
       availability: v.availability || "",

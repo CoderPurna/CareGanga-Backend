@@ -14,18 +14,25 @@ import { sendVolunteerPendingEmail, sendVolunteerStatusEmail } from "../../utils
  * Endpoint: POST /api/v1/volunteers/register
  */
 export const registerVolunteer = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, phone, ngoId, skills = [], availability, notes } = req.body;
+  const {
+    name,
+    email,
+    phone,
+    skills = [],
+    availability,
+    notes,
+    profilePhoto,
+    dob,
+    bloodGroup,
+    streetAddress,
+    pinCode,
+    city,
+    state,
+    aadhaarFront,
+    aadhaarBack,
+  } = req.body;
 
-  // 1. Verify target NGO exists
-  const ngo = await db.nGO.findUnique({
-    where: { id: ngoId },
-  });
-
-  if (!ngo) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "NGO profile not found");
-  }
-
-  // 2. Find or create user account for the volunteer
+  // 1. Find or create user account for the volunteer
   let user = await db.user.findUnique({
     where: { email },
   });
@@ -39,39 +46,66 @@ export const registerVolunteer = asyncHandler(async (req: Request, res: Response
         phone: phone || null,
         password: mockPassword, // Required database field
         role: Role.SUBADMIN, // Default schema role is SUBADMIN, but has no privileges
+        avatar: profilePhoto || null,
       },
     });
+  } else {
+    // Update phone/avatar if they were empty
+    const updateData: any = {};
+    if (!user.phone && phone) updateData.phone = phone;
+    if (!user.avatar && profilePhoto) updateData.avatar = profilePhoto;
+    if (Object.keys(updateData).length > 0) {
+      user = await db.user.update({
+        where: { id: user.id },
+        data: updateData,
+      });
+    }
   }
 
-  // 3. Prevent duplicate applications for the same NGO
+  // 2. Prevent duplicate applications
   const existingApp = await db.volunteerApplication.findFirst({
     where: {
       userId: user.id,
-      ngoId,
     },
   });
 
   if (existingApp) {
     throw new ApiError(
       HTTP_STATUS.CONFLICT,
-      "A volunteer application from this email has already been submitted for this NGO"
+      "A volunteer application from this email has already been submitted"
     );
   }
+
+  // 3. Create the address record
+  const address = await db.address.create({
+    data: {
+      line1: streetAddress,
+      city,
+      state,
+      postalCode: pinCode,
+      country: "India",
+    },
+  });
 
   // 4. Create the application
   const application = await db.volunteerApplication.create({
     data: {
       userId: user.id,
-      ngoId,
       skills,
       availability: availability || null,
       notes: notes || null,
       status: VerificationStatus.PENDING,
+      profilePhoto: profilePhoto || null,
+      dob: dob ? new Date(dob) : null,
+      bloodGroup: bloodGroup || null,
+      addressId: address.id,
+      aadhaarFront: aadhaarFront || null,
+      aadhaarBack: aadhaarBack || null,
     },
   });
 
   // 5. Send automated confirmation email in background
-  sendVolunteerPendingEmail(email, name, ngo.name).catch((err) => {
+  sendVolunteerPendingEmail(email, name, "CareGanga NGO").catch((err) => {
     console.error("Failed to trigger volunteer confirmation email: ", err);
   });
 
@@ -101,12 +135,6 @@ export const listVolunteers = asyncHandler(async (req: AuthenticatedRequest, res
     filter.status = status;
   }
 
-  // NGO Boundary Check: If subadmin has an associated ngoId, restrict them to their NGO's applications
-  const userNgoId = (req.user as any)?.ngoId;
-  if (userNgoId) {
-    filter.ngoId = userNgoId;
-  }
-
   const total = await db.volunteerApplication.count({ where: filter });
   const applications = await db.volunteerApplication.findMany({
     where: filter,
@@ -120,11 +148,7 @@ export const listVolunteers = asyncHandler(async (req: AuthenticatedRequest, res
           phone: true,
         },
       },
-      ngo: {
-        select: {
-          name: true,
-        },
-      },
+      address: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -160,23 +184,12 @@ export const getVolunteerDetails = asyncHandler(
             phone: true,
           },
         },
-        ngo: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        address: true,
       },
     });
 
     if (!application) {
       throw new ApiError(HTTP_STATUS.NOT_FOUND, "Volunteer application not found");
-    }
-
-    // NGO Boundary Check
-    const userNgoId = (req.user as any)?.ngoId;
-    if (userNgoId && application.ngoId !== userNgoId) {
-      throw new ApiError(HTTP_STATUS.FORBIDDEN, "Access denied to view this volunteer application");
     }
 
     return res
@@ -204,21 +217,11 @@ export const updateVolunteerStatus = asyncHandler(
       where: { id },
       include: {
         user: true,
-        ngo: true,
       },
     });
 
     if (!application) {
       throw new ApiError(HTTP_STATUS.NOT_FOUND, "Volunteer application not found");
-    }
-
-    // NGO Boundary Check
-    const userNgoId = (req.user as any)?.ngoId;
-    if (userNgoId && application.ngoId !== userNgoId) {
-      throw new ApiError(
-        HTTP_STATUS.FORBIDDEN,
-        "Access denied to modify this volunteer application"
-      );
     }
 
     // Update status and joinedAt date if approved
@@ -236,11 +239,7 @@ export const updateVolunteerStatus = asyncHandler(
             email: true,
           },
         },
-        ngo: {
-          select: {
-            name: true,
-          },
-        },
+        address: true,
       },
     });
 
@@ -249,7 +248,7 @@ export const updateVolunteerStatus = asyncHandler(
       sendVolunteerStatusEmail(
         updatedApp.user.email,
         updatedApp.user.name,
-        updatedApp.ngo.name,
+        "CareGanga NGO",
         status,
         notes
       ).catch((err) => {
