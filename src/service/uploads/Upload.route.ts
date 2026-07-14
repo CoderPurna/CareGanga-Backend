@@ -1,5 +1,4 @@
-import { Router, Response } from "express";
-import { authMiddleware, AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
+import { Router, Response, Request } from "express";
 import { upload } from "../../middlewares/multer.middleware.js";
 import { uploadOnCloudinary } from "../../utils/cloudinary.js";
 import { ApiError } from "../../utils/api-error.js";
@@ -16,9 +15,8 @@ const router = Router();
  */
 router.post(
   "/",
-  authMiddleware as any,
   upload.single("file"),
-  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const file = req.file;
 
     if (!file) {
