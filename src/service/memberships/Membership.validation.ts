@@ -34,8 +34,27 @@ export const updateTierSchema = createTierSchema.partial();
  * Zod Schema for Applying for a Membership (Public)
  */
 export const applyMembershipSchema = z.object({
-  ngoId: z.string({ message: "NGO ID is required" }).uuid("Invalid NGO ID format"),
+  ngoId: z
+    .string()
+    .uuid("Invalid NGO ID format")
+    .optional()
+    .or(z.literal(""))
+    .or(z.literal("guest"))
+    .or(z.null()),
   tierId: z.string({ message: "Tier ID is required" }).uuid("Invalid Tier ID format"),
+  fullName: z.string().optional().or(z.null()),
+  dob: z.string().optional().or(z.null()),
+  gender: z.string().optional().or(z.null()),
+  mobile: z.string().optional().or(z.null()),
+  email: z.string().optional().or(z.null()),
+  address: z.string().optional().or(z.null()),
+  idType: z.string().optional().or(z.null()),
+  remarks: z
+    .string()
+    .trim()
+    .max(1000, "Remarks cannot exceed 1000 characters")
+    .optional()
+    .or(z.literal("")),
 });
 
 /**

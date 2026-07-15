@@ -33,10 +33,22 @@ export const registerVolunteerSchema = z.object({
   profilePhoto: z.string().url("Invalid profile photo URL").optional().or(z.literal("")),
   dob: z.string({ message: "Date of birth is required" }).trim(),
   bloodGroup: z.string().optional().or(z.literal("")),
-  streetAddress: z.string({ message: "Street address is required" }).trim().min(2, "Street address must be at least 2 characters"),
-  pinCode: z.string({ message: "PIN Code is required" }).trim().regex(/^[0-9]{6}$/, "PIN Code must be exactly 6 digits"),
-  city: z.string({ message: "City/Town is required" }).trim().min(2, "City/Town must be at least 2 characters"),
-  state: z.string({ message: "State is required" }).trim().min(2, "State must be at least 2 characters"),
+  streetAddress: z
+    .string({ message: "Street address is required" })
+    .trim()
+    .min(2, "Street address must be at least 2 characters"),
+  pinCode: z
+    .string({ message: "PIN Code is required" })
+    .trim()
+    .regex(/^[0-9]{6}$/, "PIN Code must be exactly 6 digits"),
+  city: z
+    .string({ message: "City/Town is required" })
+    .trim()
+    .min(2, "City/Town must be at least 2 characters"),
+  state: z
+    .string({ message: "State is required" })
+    .trim()
+    .min(2, "State must be at least 2 characters"),
   aadhaarFront: z.string().url("Invalid Aadhaar front image URL").optional().or(z.literal("")),
   aadhaarBack: z.string().url("Invalid Aadhaar back image URL").optional().or(z.literal("")),
 });
