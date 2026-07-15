@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "pnpm exec prisma generate && pnpm exec tsc",
+    "build": "node -e \"require('child_process').execSync('node node_modules/prisma/build/index.js generate', {stdio:'inherit'})\" && node -e \"require('child_process').execSync('node node_modules/typescript/bin/tsc', {stdio:'inherit'})\"",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
