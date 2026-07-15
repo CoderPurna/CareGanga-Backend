@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\" && npx prisma generate && npx tsc",
+    "build": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\" && pnpm prisma generate && tsc",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
