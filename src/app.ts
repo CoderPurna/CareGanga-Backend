@@ -16,6 +16,7 @@ import csrRouter from "./service/csr/CSR.route.js";
 import taskRouter from "./service/tasks/Task.route.js";
 import publicRouter from "./service/public/Public.route.js";
 import dashboardRouter from "./service/dashboard/Dashboard.route.js";
+import adminRouter from "./service/admin/Admin.route.js";
 import { HTTP_STATUS } from "./utils/constants.js";
 
 const app = express();
@@ -50,6 +51,7 @@ app.use("/api/v1/csr", csrRouter);
 app.use("/api/v1/tasks", taskRouter);
 app.use("/api/v1/public", publicRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
+app.use("/api/v1/admin", adminRouter);
 
 app.use("/api/v1/health", (req: Request, res: Response) => {
   res.status(HTTP_STATUS.OK).json({
