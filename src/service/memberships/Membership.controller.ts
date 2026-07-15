@@ -83,12 +83,12 @@ export const createOrderAndApply = asyncHandler(async (req: Request, res: Respon
   let order = null;
   if (tier.price > 0) {
     const amountInPaise = Math.round(tier.price * 100);
-    const receiptPrefix =
-      ngoId && ngoId !== "guest" ? ngoId.substring(0, 10) : (email || "guest").substring(0, 10);
+    const rawPrefix = ngoId && ngoId !== "guest" ? ngoId : (email || "guest");
+    const sanitizedPrefix = rawPrefix.replace(/[^a-zA-Z0-9]/g, "").substring(0, 10);
     const options = {
       amount: amountInPaise,
       currency: "INR",
-      receipt: `membership_receipt_${receiptPrefix}_${Date.now()}`,
+      receipt: `mb_${sanitizedPrefix}_${Date.now()}`,
       notes: {
         ngoId: ngoId && ngoId !== "guest" ? ngoId : null,
         tierId,
@@ -97,28 +97,14 @@ export const createOrderAndApply = asyncHandler(async (req: Request, res: Respon
       },
     };
 
-    if (
-      !process.env.RAZORPAY_KEY_ID ||
-      process.env.RAZORPAY_KEY_ID === "rzp_test_placeholder_id" ||
-      process.env.RAZORPAY_KEY_ID.trim() === ""
-    ) {
-      console.log("Using Mock/Simulated Razorpay Order due to missing key_id");
-      order = {
-        id: `mock_order_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
-        amount: amountInPaise,
-        currency: "INR",
-      };
-    } else {
-      try {
-        order = await razorpay.orders.create(options);
-      } catch (error: any) {
-        console.warn("Razorpay order creation failed, falling back to mock order: ", error);
-        order = {
-          id: `mock_order_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
-          amount: amountInPaise,
-          currency: "INR",
-        };
-      }
+    try {
+      order = await razorpay.orders.create(options);
+    } catch (error: any) {
+      console.error("Razorpay order creation failed: ", error);
+      throw new ApiError(
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        error?.message || "Failed to initialize payment with Razorpay"
+      );
     }
   }
 
@@ -176,20 +162,16 @@ export const verifyMembershipPayment = asyncHandler(async (req: Request, res: Re
   const { razorpay_payment_id, razorpay_order_id, razorpay_signature, applicationId } = req.body;
 
   // 1. Verify Razorpay cryptosignature
-  if (razorpay_order_id && razorpay_order_id.startsWith("mock_order_")) {
-    console.log("Mock signature accepted for dev/testing order:", razorpay_order_id);
-  } else {
-    const secret = process.env.RAZORPAY_KEY_SECRET || "rzp_test_placeholder_secret";
-    const signString = razorpay_order_id + "|" + razorpay_payment_id;
+  const secret = process.env.RAZORPAY_KEY_SECRET || "rzp_test_placeholder_secret";
+  const signString = razorpay_order_id + "|" + razorpay_payment_id;
 
-    const expectedSignature = crypto
-      .createHmac("sha256", secret)
-      .update(signString.toString())
-      .digest("hex");
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(signString.toString())
+    .digest("hex");
 
-    if (expectedSignature !== razorpay_signature) {
-      throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Payment verification failed: Invalid signature");
-    }
+  if (expectedSignature !== razorpay_signature) {
+    throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Payment verification failed: Invalid signature");
   }
 
   // 2. Fetch target application
