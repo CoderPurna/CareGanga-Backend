@@ -4,6 +4,8 @@ import {
   listVolunteers,
   getVolunteerDetails,
   updateVolunteerStatus,
+  deleteVolunteer,
+  checkVolunteerStatus,
 } from "./Volunteer.controller.js";
 import { authMiddleware, AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
 import { validate } from "../../middlewares/validation.middleware.js";
@@ -48,6 +50,7 @@ const checkVolunteerAccess = (req: AuthenticatedRequest, res: Response, next: Ne
  * ============================================================================
  */
 router.post("/register", validate(registerVolunteerSchema), registerVolunteer as any);
+router.get("/status", checkVolunteerStatus as any);
 
 /**
  * ============================================================================
@@ -72,6 +75,12 @@ router.patch(
   checkVolunteerAccess as any,
   validate(updateVolunteerStatusSchema),
   updateVolunteerStatus as any
+);
+router.delete(
+  "/admin/:id",
+  authMiddleware as any,
+  checkVolunteerAccess as any,
+  deleteVolunteer as any
 );
 
 export default router;

@@ -1,6 +1,9 @@
 enum Role {
   ADMIN
   SUBADMIN
+  VOLUNTEER
+  MEMBER
+  COMPANY
 }
 
 enum UserStatus {
