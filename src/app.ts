@@ -29,12 +29,23 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public")); // configure static file to save images locally
 app.use(cookieParser());
 
-const allowedOrigins =
-  process.env.CLIENT_URLS?.split(",").map((url) => url.trim()) || [];
+const allowedOrigins: string[] = [];
+
+if (process.env.CLIENT_URLS) {
+  allowedOrigins.push(...process.env.CLIENT_URLS.split(",").map((url) => url.trim()));
+}
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(...process.env.CLIENT_URL.split(",").map((url) => url.trim()));
+}
+if (process.env.CORS_ORIGIN) {
+  allowedOrigins.push(...process.env.CORS_ORIGIN.split(",").map((url) => url.trim()));
+}
+
+const finalAllowedOrigins = allowedOrigins.length > 0 ? allowedOrigins : ["http://localhost:5173"];
 
 app.use(
   cors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : [process.env.CLIENT_URL || "http://localhost:5173"],
+    origin: finalAllowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   })
