@@ -17,6 +17,7 @@ model User {
   volunteerApplications VolunteerApplication[]
   activities            Activity[]
   membershipApplications MembershipApplication[]
+  membership            Membership?
   notifications         Notification[]
   payments              Payment[]
   sessions              Session[]

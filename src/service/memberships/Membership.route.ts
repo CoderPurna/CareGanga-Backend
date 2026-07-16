@@ -14,6 +14,7 @@ import {
   adminGetApplicationById,
   adminUpdateApplicationStatus,
   adminDeleteApplication,
+  adminGetMemberships,
 } from "./Membership.controller.js";
 import { authMiddleware, AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
 import { validate } from "../../middlewares/validation.middleware.js";
@@ -73,5 +74,8 @@ router.patch(
   adminUpdateApplicationStatus as any
 );
 router.delete("/admin/applications/:id", adminDeleteApplication as any);
+
+// Member Management
+router.get("/admin/members", adminGetMemberships as any);
 
 export default router;

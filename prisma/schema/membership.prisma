@@ -1,7 +1,7 @@
 model MembershipTier {
   id          String   @id @default(uuid())
   name        String
-  description String?
+  description String
   price       Float
   duration    Int
   benefits    String[] @default([])
@@ -16,22 +16,28 @@ model MembershipTier {
 model Membership {
   id         String           @id @default(uuid())
   ngoId      String?          @unique
+  userId     String?          @unique
   tierId     String
   startDate  DateTime         @default(now())
   expiryDate DateTime
   status     MembershipStatus @default(PENDING)
   paymentId  String?
 
-  fullName   String?
-  dob        String?
-  gender     String?
-  mobile     String?
-  email      String?
-  address    String?
-  idType     String?
+  fullName           String
+  dob                DateTime
+  gender             String
+  mobile             String
+  email              String
+  permanentAddressId String
+  billingAddressId   String
+  profileImage       String
+  supportingDocument String
 
-  ngo        NGO?             @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  tier       MembershipTier   @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  ngo              NGO?           @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier             MembershipTier @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  permanentAddress Address        @relation("PermanentAddress", fields: [permanentAddressId], references: [id], onDelete: Restrict)
+  billingAddress   Address        @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: Restrict)
 }
 
 model MembershipApplication {
@@ -44,15 +50,19 @@ model MembershipApplication {
   submittedAt DateTime           @default(now())
   reviewedAt  DateTime?
 
-  fullName   String?
-  dob        String?
-  gender     String?
-  mobile     String?
-  email      String?
-  address    String?
-  idType     String?
+  fullName           String
+  dob                DateTime
+  gender             String
+  mobile             String
+  email              String
+  permanentAddressId String
+  billingAddressId   String
+  profileImage       String
+  supportingDocument String
 
-  user        User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ngo         NGO?               @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  tier        MembershipTier     @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ngo              NGO?           @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  tier             MembershipTier @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  permanentAddress Address        @relation("PermanentAddressApp", fields: [permanentAddressId], references: [id], onDelete: Restrict)
+  billingAddress   Address        @relation("BillingAddressApp", fields: [billingAddressId], references: [id], onDelete: Restrict)
 }

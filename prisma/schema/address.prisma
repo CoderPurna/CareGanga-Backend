@@ -15,4 +15,8 @@ model Address {
   ngos       NGO[]
   companies  Company[]
   volunteerApplications VolunteerApplication[]
+  permanentMemberships    Membership[]            @relation("PermanentAddress")
+  billingMemberships      Membership[]            @relation("BillingAddress")
+  permanentMembershipApps MembershipApplication[] @relation("PermanentAddressApp")
+  billingMembershipApps   MembershipApplication[] @relation("BillingAddressApp")
 }
