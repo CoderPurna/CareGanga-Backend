@@ -6,6 +6,8 @@ import {
   getMembershipInvoiceTemplate,
   getVolunteerPendingTemplate,
   getVolunteerStatusTemplate,
+  getCompanyPendingTemplate,
+  getCompanyStatusTemplate,
 } from "./mail-templates.js";
 
 /**
@@ -193,6 +195,105 @@ export const sendVolunteerStatusEmail = async (
     return response.ok;
   } catch (error) {
     console.error("Failed to send volunteer status email: ", error);
+    return false;
+  }
+};
+
+/**
+ * Sends a confirmation email to a company upon registration (Pending verification status)
+ */
+export const sendCompanyPendingEmail = async (
+  companyEmail: string,
+  companyName: string,
+  pocName: string
+) => {
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderName = process.env.BREVO_SENDER_NAME || "CareGanga";
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "info.careganga@gmail.com";
+
+  if (!apiKey) {
+    console.error("BREVO_API_KEY is not defined. Email skipped.");
+    return false;
+  }
+
+  const endpoint = "https://api.brevo.com/v3/smtp/email";
+  const htmlContent = getCompanyPendingTemplate(companyName, pocName);
+
+  try {
+    const payload = {
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: companyEmail, name: pocName }],
+      subject: `Corporate Registration Received - CareGanga`,
+      htmlContent,
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send company pending email: ", error);
+    return false;
+  }
+};
+
+/**
+ * Sends a status update email to a company when approved or rejected
+ */
+export const sendCompanyStatusEmail = async (
+  companyEmail: string,
+  companyName: string,
+  pocName: string,
+  status: string,
+  remarks?: string
+) => {
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderName = process.env.BREVO_SENDER_NAME || "CareGanga";
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "info.careganga@gmail.com";
+
+  if (!apiKey) {
+    console.error("BREVO_API_KEY is not defined. Email skipped.");
+    return false;
+  }
+
+  const endpoint = "https://api.brevo.com/v3/smtp/email";
+  const isApproved = status.toUpperCase() === "APPROVED" || status.toUpperCase() === "ACTIVE";
+  const htmlContent = getCompanyStatusTemplate(
+    companyName,
+    pocName,
+    isApproved ? "APPROVED" : status,
+    isApproved,
+    remarks
+  );
+
+  try {
+    const payload = {
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: companyEmail, name: pocName }],
+      subject: `Corporate Registration Update - CareGanga`,
+      htmlContent,
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send company status email: ", error);
     return false;
   }
 };
