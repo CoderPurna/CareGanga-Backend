@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { db } from "../../db/db.js";
 import { ApiError } from "../../utils/api-error.js";
 import { ApiResponse } from "../../utils/api-response.js";
@@ -47,13 +47,15 @@ export const createDonation = asyncHandler(async (req: AuthenticatedRequest, res
     message,
   } = req.body;
 
-  // 1. Verify if campaign exists
-  const campaign = await db.campaign.findUnique({
-    where: { id: campaignId },
-  });
+  // 1. Verify if campaign exists (if campaignId is provided)
+  if (campaignId) {
+    const campaign = await db.campaign.findUnique({
+      where: { id: campaignId },
+    });
 
-  if (!campaign) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Campaign not found");
+    if (!campaign) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, "Campaign not found");
+    }
   }
 
   // 2. Prevent duplicate transaction checks
@@ -76,7 +78,7 @@ export const createDonation = asyncHandler(async (req: AuthenticatedRequest, res
   // 4. Create the donation record
   const donation = await db.donation.create({
     data: {
-      campaignId,
+      campaignId: campaignId || null,
       userId,
       companyId: companyProfile ? companyProfile.id : null,
       amount,
@@ -197,7 +199,7 @@ export const getDonationsList = asyncHandler(async (req: AuthenticatedRequest, r
 
   // Sanitize anonymous donations for non-owners/staff
   const sanitizedDonations = donations.map((donation) => {
-    const isOwnerOrStaff = ngoProfile && (donation as any).campaign.ngoId === ngoProfile.id;
+    const isOwnerOrStaff = ngoProfile && donation.campaign && (donation as any).campaign.ngoId === ngoProfile.id;
     const isDonorSelf = donation.userId === userId;
     const isPlatformAdmin = userRole === Role.ADMIN && !ngoProfile;
 
@@ -275,7 +277,7 @@ export const getDonationDetails = asyncHandler(async (req: AuthenticatedRequest,
       where: { userId },
     });
     // Platform admin (no associated NGO) or owner of the campaign's NGO
-    if (!adminNgo || adminNgo.id === (donation as any).campaign.ngoId) {
+    if (!adminNgo || (donation.campaign && adminNgo.id === donation.campaign.ngoId)) {
       hasAccess = true;
       isNGOStaff = !!adminNgo;
     }
@@ -292,7 +294,7 @@ export const getDonationDetails = asyncHandler(async (req: AuthenticatedRequest,
     }
 
     const userNgoId = (req.user as any)?.ngoId;
-    if (userNgoId && userNgoId === (donation as any).campaign.ngoId) {
+    if (userNgoId && donation.campaign && userNgoId === donation.campaign.ngoId) {
       hasAccess = true;
       isNGOStaff = true;
     }
@@ -532,3 +534,36 @@ export const getDonationAnalytics = asyncHandler(
     );
   }
 );
+
+/**
+ * 6. Admin Get All Donors (Platform Admin Only)
+ * Endpoint: GET /api/v1/donations/admin/donors
+ */
+export const adminGetDonors = asyncHandler(async (req: Request, res: Response) => {
+  const donors = await db.user.findMany({
+    where: {
+      OR: [
+        { role: Role.DONOR },
+        { donations: { some: {} } },
+      ],
+    },
+    include: {
+      donations: {
+        include: {
+          campaign: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+        orderBy: { donatedAt: "desc" },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return res
+    .status(HTTP_STATUS.OK)
+    .json(new ApiResponse(HTTP_STATUS.OK, "Donors list retrieved successfully", donors));
+});

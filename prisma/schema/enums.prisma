@@ -4,6 +4,7 @@ enum Role {
   VOLUNTEER
   MEMBER
   COMPANY
+  DONOR
 }
 
 enum UserStatus {

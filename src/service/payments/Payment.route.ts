@@ -9,7 +9,7 @@ import {
   getDonationStatsAdmin,
   refundDonation,
 } from "./Payment.controller.js";
-import { authMiddleware, AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
+import { authMiddleware, optionalAuthMiddleware, AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
 import { validate } from "../../middlewares/validation.middleware.js";
 import { Role } from "../../generated/prisma/index.js";
 import { ApiError } from "../../utils/api-error.js";
@@ -38,19 +38,19 @@ const adminOnly = (req: AuthenticatedRequest, res: Response, next: NextFunction)
  */
 router.post(
   "/create-order",
-  authMiddleware as any,
+  optionalAuthMiddleware as any,
   validate(createOrderSchema),
   createOrder as any
 );
 router.post(
   "/verify-payment",
-  authMiddleware as any,
+  optionalAuthMiddleware as any,
   validate(verifyPaymentSchema),
   verifyPayment as any
 );
 router.post(
   "/simulate-success",
-  authMiddleware as any,
+  optionalAuthMiddleware as any,
   validate(simulateSuccessSchema),
   simulateSuccess as any
 );

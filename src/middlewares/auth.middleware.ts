@@ -62,3 +62,48 @@ export const authMiddleware = asyncHandler(
     }
   }
 );
+
+export const optionalAuthMiddleware = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+
+      if (!token) {
+        return next();
+      }
+
+      const secret = process.env.ACCESS_TOKEN_SECRET;
+      if (!secret) {
+        return next();
+      }
+
+      const decoded = jwt.verify(token, secret) as { id: string };
+
+      const user = await db.user.findUnique({
+        where: { id: decoded.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          avatar: true,
+          role: true,
+          status: true,
+          emailVerified: true,
+          ngoId: true,
+          createdAt: true,
+          updatedAt: true,
+          permissions: true,
+        },
+      });
+
+      if (user) {
+        req.user = user;
+      }
+      next();
+    } catch {
+      // Ignore token validation errors for optional authentication
+      next();
+    }
+  }
+);
