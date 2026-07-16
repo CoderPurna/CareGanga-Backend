@@ -29,11 +29,12 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public")); // configure static file to save images locally
 app.use(cookieParser());
 
+const allowedOrigins =
+  process.env.CLIENT_URLS?.split(",").map((url) => url.trim()) || [];
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",")
-      : [process.env.CLIENT_URL || "http://localhost:5173"],
+    origin: allowedOrigins.length > 0 ? allowedOrigins : [process.env.CLIENT_URL || "http://localhost:5173"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   })
