@@ -232,6 +232,13 @@ export const updateVolunteerStatus = asyncHandler(
       throw new ApiError(HTTP_STATUS.NOT_FOUND, "Volunteer application not found");
     }
 
+    if (application.status === VerificationStatus.APPROVED && status !== VerificationStatus.APPROVED) {
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        "Once approved, a volunteer's status cannot be modified. Delete the application if you need to remove them."
+      );
+    }
+
     // Update status and joinedAt date if approved
     const updatedApp = await db.volunteerApplication.update({
       where: { id },
