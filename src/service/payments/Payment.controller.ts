@@ -8,6 +8,7 @@ import { asyncHandler } from "../../utils/async-handler.js";
 import { HTTP_STATUS } from "../../utils/constants.js";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
 import { DonationStatus, Role } from "../../generated/prisma/index.js";
+import { generateAndSendDonationReceipt } from "../../utils/receipt-generator.js";
 
 /**
  * Helper function to resolve or create a donor user profile.
@@ -215,6 +216,11 @@ export const verifyPayment = asyncHandler(async (req: AuthenticatedRequest, res:
     return { payment, donation };
   });
 
+  // Asynchronously generate filled payment receipt image and email it to the user
+  generateAndSendDonationReceipt(result.donation.id).catch((err) => {
+    console.error("Failed to generate and send donation receipt: ", err);
+  });
+
   return res
     .status(HTTP_STATUS.OK)
     .json(
@@ -289,6 +295,11 @@ export const simulateSuccess = asyncHandler(async (req: AuthenticatedRequest, re
     });
 
     return { payment, donation };
+  });
+
+  // Asynchronously generate filled payment receipt image and email it to the user
+  generateAndSendDonationReceipt(result.donation.id).catch((err) => {
+    console.error("Failed to generate and send donation receipt: ", err);
   });
 
   return res

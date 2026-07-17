@@ -8,6 +8,7 @@ import {
   getVolunteerStatusTemplate,
   getCompanyPendingTemplate,
   getCompanyStatusTemplate,
+  getDonationReceiptTemplate,
 } from "./mail-templates.js";
 
 /**
@@ -297,3 +298,72 @@ export const sendCompanyStatusEmail = async (
     return false;
   }
 };
+
+/**
+ * Sends an email containing the filled donation receipt as an attachment
+ */
+export const sendDonationReceiptEmail = async (
+  donorEmail: string,
+  donorName: string,
+  amount: number,
+  campaignTitle: string,
+  transactionId: string,
+  base64Image: string
+) => {
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderName = process.env.BREVO_SENDER_NAME || "CareGanga";
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "info.careganga@gmail.com";
+
+  if (!apiKey) {
+    console.error("BREVO_API_KEY is not defined. Email skipped.");
+    return false;
+  }
+
+  const endpoint = "https://api.brevo.com/v3/smtp/email";
+
+  const htmlContent = getDonationReceiptTemplate(
+    donorName,
+    amount,
+    campaignTitle,
+    transactionId
+  );
+
+  try {
+    const payload = {
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: donorEmail, name: donorName }],
+      subject: `Donation Receipt - CareGanga Foundation`,
+      htmlContent,
+      attachments: [
+        {
+          name: `donation_receipt_${transactionId.substring(0, 10)}.png`,
+          content: base64Image,
+        },
+      ],
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Brevo API Error (${response.status}): `, errorText);
+      return false;
+    }
+
+    const data = await response.json();
+    console.log("Donation receipt email sent successfully via Brevo: ", data);
+    return true;
+  } catch (error) {
+    console.error("Failed to send donation receipt email via Brevo: ", error);
+    return false;
+  }
+};
+

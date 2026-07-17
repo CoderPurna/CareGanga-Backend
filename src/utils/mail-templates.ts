@@ -351,3 +351,66 @@ export const getCompanyStatusTemplate = (
     </html>
   `;
 };
+
+/**
+ * Returns the HTML body for a donation receipt email notification
+ */
+export const getDonationReceiptTemplate = (
+  donorName: string,
+  amount: number,
+  campaignTitle: string,
+  transactionId: string
+) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Donation Receipt</title>
+      <style>
+        body { font-family: 'Segoe UI', Roboto, sans-serif; color: #2D3748; background-color: #F7FAFC; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #FFFFFF; border-radius: 12px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .header { background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 30px; text-align: center; color: #FFFFFF; }
+        .content { padding: 40px 30px; line-height: 1.6; }
+        .footer { background-color: #F7FAFC; padding: 20px; text-align: center; font-size: 12px; color: #A0AEC0; border-top: 1px solid #E2E8F0; }
+        .details-box { background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .details-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; }
+        .details-label { color: #6B7280; font-weight: 500; }
+        .details-value { color: #111827; font-weight: 600; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>CareGanga Foundation</h2>
+          <p>Official Donation Receipt</p>
+        </div>
+        <div class="content">
+          <p>Dear <strong>${donorName}</strong>,</p>
+          <p>Thank you for your generous support! Your donation has been successfully processed. Because of your support, we are able to continue empowering lives through education and healthcare.</p>
+          <p>Please find your official payment/donation receipt attached to this email as a PDF/image.</p>
+          
+          <div class="details-box">
+            <div class="details-row">
+              <span class="details-label">Campaign:</span>
+              <span class="details-value">${campaignTitle}</span>
+            </div>
+            <div class="details-row">
+              <span class="details-label">Amount:</span>
+              <span class="details-value">₹${amount.toLocaleString("en-IN")}.00</span>
+            </div>
+            <div class="details-row">
+              <span class="details-label">Transaction ID:</span>
+              <span class="details-value">${transactionId}</span>
+            </div>
+          </div>
+
+          <p style="color: #718096; font-size: 14px; margin-top: 30px;">Thank you for your generosity,<br/>The CareGanga Team</p>
+        </div>
+        <div class="footer">&copy; ${new Date().getFullYear()} CareGanga. All rights reserved.</div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
