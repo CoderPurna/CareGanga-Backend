@@ -3,6 +3,7 @@ import {
   createNgoProfile,
   getMyNgoProfile,
   getNgoProfileById,
+  getAllNgos,
   updateNgoProfile,
   deleteNgoProfile,
   getSharedNgoProfile,
@@ -15,6 +16,7 @@ import { createNgoSchema, updateNgoSchema } from "./NGO.validation.js";
 const router = Router();
 
 // Public routes
+router.get("/", getAllNgos);
 router.get("/:id", getNgoProfileById);
 router.get("/share/:shortName", getSharedNgoProfile as any);
 router.get("/share/redirect/:shortName", renderSharedProfileRedirect as any);

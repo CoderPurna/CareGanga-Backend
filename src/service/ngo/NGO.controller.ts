@@ -210,7 +210,76 @@ export const getMyNgoProfile = asyncHandler(async (req: AuthenticatedRequest, re
 });
 
 /**
- * 3. Get NGO Profile By ID (Public)
+ * 3. Get All NGOs (Public list with search & pagination)
+ */
+export const getAllNgos = asyncHandler(async (req: Request, res: Response) => {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 10));
+  const skip = (page - 1) * limit;
+
+  const { search, ngoType, city, state, verificationStatus } = req.query;
+
+  const where: any = {};
+
+  if (verificationStatus) {
+    where.verificationStatus = verificationStatus as string;
+  }
+
+  if (ngoType) {
+    where.ngoType = { equals: ngoType as string, mode: "insensitive" };
+  }
+
+  if (city || state) {
+    where.address = {};
+    if (city) {
+      where.address.city = { contains: city as string, mode: "insensitive" };
+    }
+    if (state) {
+      where.address.state = { contains: state as string, mode: "insensitive" };
+    }
+  }
+
+  if (search) {
+    const searchString = search as string;
+    where.OR = [
+      { name: { contains: searchString, mode: "insensitive" } },
+      { shortName: { contains: searchString, mode: "insensitive" } },
+      { registrationNumber: { contains: searchString, mode: "insensitive" } },
+      { description: { contains: searchString, mode: "insensitive" } },
+      { email: { contains: searchString, mode: "insensitive" } },
+      { address: { city: { contains: searchString, mode: "insensitive" } } },
+      { address: { state: { contains: searchString, mode: "insensitive" } } },
+    ];
+  }
+
+  const [ngos, total] = await Promise.all([
+    db.nGO.findMany({
+      where,
+      include: {
+        address: true,
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+    db.nGO.count({ where }),
+  ]);
+
+  return res.status(HTTP_STATUS.OK).json(
+    new ApiResponse(HTTP_STATUS.OK, "NGOs retrieved successfully", {
+      ngos,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    })
+  );
+});
+
+/**
+ * 4. Get NGO Profile By ID (Public)
  */
 export const getNgoProfileById = asyncHandler(async (req: Request, res: Response) => {
   const id = req.params.id as string;
