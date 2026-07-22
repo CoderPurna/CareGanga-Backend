@@ -1,5 +1,18 @@
 import { z } from "zod";
 
+const addressSchema = z
+  .object({
+    line1: z.string().trim().optional().or(z.literal("")),
+    line2: z.string().trim().optional().or(z.literal("")),
+    city: z.string().trim().optional().or(z.literal("")),
+    district: z.string().trim().optional().or(z.literal("")),
+    state: z.string().trim().optional().or(z.literal("")),
+    country: z.string().trim().optional().or(z.literal("")),
+    postalCode: z.string().trim().optional().or(z.literal("")),
+  })
+  .optional()
+  .or(z.null());
+
 /**
  * Zod Schema for Creating a Razorpay Order
  */
@@ -23,6 +36,7 @@ export const createOrderSchema = z.object({
     .optional()
     .or(z.null())
     .or(z.literal("")),
+  address: addressSchema,
 });
 
 /**
@@ -67,6 +81,7 @@ export const verifyPaymentSchema = z.object({
     .optional()
     .or(z.null())
     .or(z.literal("")),
+  address: addressSchema,
 });
 
 /**
@@ -99,6 +114,7 @@ export const simulateSuccessSchema = z.object({
     .optional()
     .or(z.null())
     .or(z.literal("")),
+  address: addressSchema,
 });
 
 /**

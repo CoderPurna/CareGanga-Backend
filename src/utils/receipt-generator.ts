@@ -52,6 +52,7 @@ export const generateAndSendDonationReceipt = async (donationId: string) => {
             address: true,
           },
         },
+        address: true,
       },
     });
 
@@ -78,10 +79,12 @@ export const generateAndSendDonationReceipt = async (donationId: string) => {
     // Address
     let addressLine1 = "N/A";
     let addressLine2 = "";
-    if (!donation.anonymous && donation.company?.address) {
-      const addr = donation.company.address;
-      addressLine1 = addr.line1 || "N/A";
-      addressLine2 = `${addr.city || ""}, ${addr.state || ""} - ${addr.postalCode || ""}`;
+    if (!donation.anonymous) {
+      const addr = donation.address || donation.company?.address;
+      if (addr) {
+        addressLine1 = addr.line1 || "N/A";
+        addressLine2 = `${addr.city || ""}, ${addr.state || ""} - ${addr.postalCode || ""}`;
+      }
     }
 
     // PAN / CIN

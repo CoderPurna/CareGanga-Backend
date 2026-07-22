@@ -19,4 +19,5 @@ model Address {
   billingMemberships      Membership[]            @relation("BillingAddress")
   permanentMembershipApps MembershipApplication[] @relation("PermanentAddressApp")
   billingMembershipApps   MembershipApplication[] @relation("BillingAddressApp")
+  donations               Donation[]
 }

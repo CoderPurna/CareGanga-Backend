@@ -3,6 +3,7 @@ model Donation {
   campaignId    String?
   userId        String
   companyId     String?
+  addressId     String?
   amount        Float
   currency      String         @default("INR")
   paymentMethod String
@@ -16,6 +17,7 @@ model Donation {
   campaign      Campaign?      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  address       Address?       @relation(fields: [addressId], references: [id], onDelete: SetNull)
 }
 
 model Payment {
