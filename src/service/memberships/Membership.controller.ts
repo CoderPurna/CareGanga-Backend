@@ -36,8 +36,21 @@ export const getActiveTiers = asyncHandler(async (req: Request, res: Response) =
  * Endpoint: POST /api/v1/memberships/apply
  */
 export const createOrderAndApply = asyncHandler(async (req: Request, res: Response) => {
-  const { ngoId, tierId, remarks, fullName, dob, gender, mobile, email, address, idType } =
-    req.body;
+  const {
+    ngoId,
+    tierId,
+    remarks,
+    fullName,
+    dob,
+    gender,
+    mobile,
+    email,
+    permanentAddress,
+    billingAddress,
+    sameAsPermanent,
+    profileImage,
+    supportingDocument,
+  } = req.body;
 
   // 1. Verify Tier exists and is active
   const tier = await db.membershipTier.findUnique({
@@ -55,36 +68,110 @@ export const createOrderAndApply = asyncHandler(async (req: Request, res: Respon
     );
   }
 
-  // 2. If ngoId is provided (logged-in user), verify NGO exists and check for active subscription
-  let targetNgo = null;
-  if (ngoId && ngoId !== "guest") {
-    targetNgo = await db.nGO.findUnique({
-      where: { id: ngoId },
-    });
+  // 2. Find or create user account for the member (Assign role MEMBER)
+  let user = await db.user.findUnique({
+    where: { email },
+  });
 
-    if (!targetNgo) {
-      throw new ApiError(HTTP_STATUS.NOT_FOUND, "NGO profile not found");
+  if (!user) {
+    const mockPassword = crypto.randomBytes(16).toString("hex");
+    user = await db.user.create({
+      data: {
+        name: fullName,
+        email,
+        phone: mobile,
+        password: mockPassword,
+        role: Role.MEMBER,
+        avatar: profileImage,
+      },
+    });
+  } else {
+    const updateData: any = {};
+    if (!user.phone && mobile) updateData.phone = mobile;
+    if (!user.avatar && profileImage) updateData.avatar = profileImage;
+    if (user.role !== Role.ADMIN && user.role !== Role.SUBADMIN) {
+      updateData.role = Role.MEMBER;
     }
-
-    const activeMembership = await db.membership.findUnique({
-      where: { ngoId },
-    });
-
-    if (
-      activeMembership &&
-      activeMembership.status === MembershipStatus.ACTIVE &&
-      activeMembership.expiryDate > new Date()
-    ) {
-      throw new ApiError(HTTP_STATUS.CONFLICT, "NGO already has an active membership subscription");
+    if (Object.keys(updateData).length > 0) {
+      user = await db.user.update({
+        where: { id: user.id },
+        data: updateData,
+      });
     }
   }
 
-  // 3. Create Razorpay Order (if price is greater than 0, otherwise handle free plans)
+  // 3. Prevent duplicate active subscriptions
+  const existingApp = await db.membershipApplication.findFirst({
+    where: {
+      userId: user.id,
+      status: MembershipStatus.ACTIVE,
+    },
+  });
+
+  if (existingApp) {
+    throw new ApiError(
+      HTTP_STATUS.CONFLICT,
+      "You already have an active membership application/subscription"
+    );
+  }
+
+  const existingMembership = await db.membership.findFirst({
+    where: {
+      userId: user.id,
+      status: MembershipStatus.ACTIVE,
+      expiryDate: { gt: new Date() },
+    },
+  });
+
+  if (existingMembership) {
+    throw new ApiError(
+      HTTP_STATUS.CONFLICT,
+      "You already have an active membership subscription"
+    );
+  }
+
+  // 4. Create address records
+  const permAddr = await db.address.create({
+    data: {
+      line1: permanentAddress.streetAddress,
+      city: permanentAddress.city,
+      state: permanentAddress.state,
+      postalCode: permanentAddress.pinCode,
+      country: "India",
+    },
+  });
+
+  let billAddrId = permAddr.id;
+  if (!sameAsPermanent && billingAddress) {
+    const billAddr = await db.address.create({
+      data: {
+        line1: billingAddress.streetAddress,
+        city: billingAddress.city,
+        state: billingAddress.state,
+        postalCode: billingAddress.pinCode,
+        country: "India",
+      },
+    });
+    billAddrId = billAddr.id;
+  } else {
+    // Create duplicate record for billing to allow independent edits later
+    const billAddr = await db.address.create({
+      data: {
+        line1: permanentAddress.streetAddress,
+        city: permanentAddress.city,
+        state: permanentAddress.state,
+        postalCode: permanentAddress.pinCode,
+        country: "India",
+      },
+    });
+    billAddrId = billAddr.id;
+  }
+
+  // 5. Create Razorpay Order
   let order = null;
   if (tier.price > 0) {
     const amountInPaise = Math.round(tier.price * 100);
-    const rawPrefix = ngoId && ngoId !== "guest" ? ngoId : (email || "guest");
-    const sanitizedPrefix = rawPrefix.replace(/[^a-zA-Z0-9]/g, "").substring(0, 10);
+    const sanitizedPrefix = email.replace(/[^a-zA-Z0-9]/g, "").substring(0, 10);
     const options = {
       amount: amountInPaise,
       currency: "INR",
@@ -92,8 +179,8 @@ export const createOrderAndApply = asyncHandler(async (req: Request, res: Respon
       notes: {
         ngoId: ngoId && ngoId !== "guest" ? ngoId : null,
         tierId,
-        email: email || null,
-        fullName: fullName || null,
+        email: email,
+        fullName: fullName,
       },
     };
 
@@ -108,21 +195,23 @@ export const createOrderAndApply = asyncHandler(async (req: Request, res: Respon
     }
   }
 
-  // 4. Create the MembershipApplication in database
+  // 6. Create the MembershipApplication in database
   const application = await db.membershipApplication.create({
     data: {
-      userId: targetNgo ? targetNgo.userId : null,
+      userId: user.id,
       ngoId: ngoId && ngoId !== "guest" ? ngoId : null,
       tierId,
       status: MembershipStatus.PENDING,
       remarks: remarks || null,
-      fullName: fullName || null,
-      dob: dob || null,
-      gender: gender || null,
-      mobile: mobile || null,
-      email: email || null,
-      address: address || null,
-      idType: idType || null,
+      fullName,
+      dob: new Date(dob),
+      gender,
+      mobile,
+      email,
+      permanentAddressId: permAddr.id,
+      billingAddressId: billAddrId,
+      profileImage,
+      supportingDocument,
     },
     include: {
       ngo: {
@@ -189,18 +278,10 @@ export const verifyMembershipPayment = asyncHandler(async (req: Request, res: Re
 
   // 3. Avoid processing if already activated
   if (application.status === MembershipStatus.ACTIVE) {
-    let membership = null;
-    if (application.ngoId) {
-      membership = await db.membership.findUnique({
-        where: { ngoId: application.ngoId },
-        include: { tier: true },
-      });
-    } else {
-      membership = await db.membership.findFirst({
-        where: { paymentId: razorpay_payment_id },
-        include: { tier: true },
-      });
-    }
+    let membership = await db.membership.findFirst({
+      where: { userId: application.userId, status: MembershipStatus.ACTIVE },
+      include: { tier: true },
+    });
     return res.status(HTTP_STATUS.OK).json(
       new ApiResponse(
         HTTP_STATUS.OK,
@@ -231,65 +312,29 @@ export const verifyMembershipPayment = asyncHandler(async (req: Request, res: Re
       },
     });
 
-    let membership = null;
-    if (application.ngoId) {
-      membership = await tx.membership.upsert({
-        where: { ngoId: application.ngoId },
-        create: {
-          ngoId: application.ngoId,
-          tierId: application.tierId,
-          startDate: new Date(),
-          expiryDate: expiryDate,
-          status: MembershipStatus.ACTIVE,
-          paymentId: razorpay_payment_id,
-          fullName: application.fullName,
-          dob: application.dob,
-          gender: application.gender,
-          mobile: application.mobile,
-          email: application.email,
-          address: application.address,
-          idType: application.idType,
-        },
-        update: {
-          tierId: application.tierId,
-          startDate: new Date(),
-          expiryDate: expiryDate,
-          status: MembershipStatus.ACTIVE,
-          paymentId: razorpay_payment_id,
-          fullName: application.fullName,
-          dob: application.dob,
-          gender: application.gender,
-          mobile: application.mobile,
-          email: application.email,
-          address: application.address,
-          idType: application.idType,
-        },
-        include: {
-          tier: true,
-        },
-      });
-    } else {
-      membership = await tx.membership.create({
-        data: {
-          ngoId: null,
-          tierId: application.tierId,
-          startDate: new Date(),
-          expiryDate: expiryDate,
-          status: MembershipStatus.ACTIVE,
-          paymentId: razorpay_payment_id,
-          fullName: application.fullName,
-          dob: application.dob,
-          gender: application.gender,
-          mobile: application.mobile,
-          email: application.email,
-          address: application.address,
-          idType: application.idType,
-        },
-        include: {
-          tier: true,
-        },
-      });
-    }
+    const membership = await tx.membership.create({
+      data: {
+        ngoId: application.ngoId,
+        userId: application.userId,
+        tierId: application.tierId,
+        startDate: new Date(),
+        expiryDate: expiryDate,
+        status: MembershipStatus.ACTIVE,
+        paymentId: razorpay_payment_id,
+        fullName: application.fullName,
+        dob: application.dob,
+        gender: application.gender,
+        mobile: application.mobile,
+        email: application.email,
+        permanentAddressId: application.permanentAddressId,
+        billingAddressId: application.billingAddressId,
+        profileImage: application.profileImage,
+        supportingDocument: application.supportingDocument,
+      },
+      include: {
+        tier: true,
+      },
+    });
 
     return { application: updatedApp, membership };
   });
@@ -414,7 +459,7 @@ export const getReceipt = asyncHandler(async (req: Request, res: Response) => {
     });
   } else {
     activeMembership = await db.membership.findFirst({
-      where: { email: application.email, tierId: application.tierId },
+      where: { userId: application.userId, tierId: application.tierId },
       orderBy: { startDate: "desc" },
     });
   }
@@ -473,7 +518,7 @@ export const adminCreateTier = asyncHandler(async (req: Request, res: Response) 
   const tier = await db.membershipTier.create({
     data: {
       name,
-      description: description || null,
+      description,
       price,
       duration,
       benefits,
@@ -515,7 +560,7 @@ export const adminUpdateTier = asyncHandler(async (req: Request, res: Response) 
     where: { id },
     data: {
       name: name || undefined,
-      description: description !== undefined ? description : undefined,
+      description: description || undefined,
       price: price !== undefined ? price : undefined,
       duration: duration !== undefined ? duration : undefined,
       benefits: benefits !== undefined ? benefits : undefined,
@@ -698,12 +743,17 @@ export const adminUpdateApplicationStatus = asyncHandler(async (req: Request, re
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + durationDays);
 
-      if (application.ngoId) {
-        membership = await tx.membership.upsert({
-          where: { ngoId: application.ngoId },
-          create: {
-            ngoId: application.ngoId,
-            tierId: application.tierId,
+      const existingMembership = await tx.membership.findFirst({
+        where: {
+          userId: application.userId,
+          status: MembershipStatus.ACTIVE,
+        },
+      });
+
+      if (existingMembership) {
+        membership = await tx.membership.update({
+          where: { id: existingMembership.id },
+          data: {
             startDate: new Date(),
             expiryDate,
             status: MembershipStatus.ACTIVE,
@@ -712,92 +762,43 @@ export const adminUpdateApplicationStatus = asyncHandler(async (req: Request, re
             dob: application.dob,
             gender: application.gender,
             mobile: application.mobile,
-            email: application.email,
-            address: application.address,
-            idType: application.idType,
-          },
-          update: {
-            tierId: application.tierId,
-            startDate: new Date(),
-            expiryDate,
-            status: MembershipStatus.ACTIVE,
-            paymentId: "MANUAL_ADMIN_UPGRADE",
-            fullName: application.fullName,
-            dob: application.dob,
-            gender: application.gender,
-            mobile: application.mobile,
-            email: application.email,
-            address: application.address,
-            idType: application.idType,
+            permanentAddressId: application.permanentAddressId,
+            billingAddressId: application.billingAddressId,
+            profileImage: application.profileImage,
+            supportingDocument: application.supportingDocument,
           },
         });
       } else {
-        const existingGuestMembership = await tx.membership.findFirst({
-          where: {
-            ngoId: null,
-            email: application.email,
+        membership = await tx.membership.create({
+          data: {
+            ngoId: application.ngoId,
+            userId: application.userId,
             tierId: application.tierId,
+            startDate: new Date(),
+            expiryDate,
             status: MembershipStatus.ACTIVE,
+            paymentId: "MANUAL_ADMIN_UPGRADE",
+            fullName: application.fullName,
+            dob: application.dob,
+            gender: application.gender,
+            mobile: application.mobile,
+            email: application.email,
+            permanentAddressId: application.permanentAddressId,
+            billingAddressId: application.billingAddressId,
+            profileImage: application.profileImage,
+            supportingDocument: application.supportingDocument,
           },
         });
-
-        if (existingGuestMembership) {
-          membership = await tx.membership.update({
-            where: { id: existingGuestMembership.id },
-            data: {
-              startDate: new Date(),
-              expiryDate,
-              status: MembershipStatus.ACTIVE,
-              paymentId: "MANUAL_ADMIN_UPGRADE",
-              fullName: application.fullName,
-              dob: application.dob,
-              gender: application.gender,
-              mobile: application.mobile,
-              address: application.address,
-              idType: application.idType,
-            },
-          });
-        } else {
-          membership = await tx.membership.create({
-            data: {
-              ngoId: null,
-              tierId: application.tierId,
-              startDate: new Date(),
-              expiryDate,
-              status: MembershipStatus.ACTIVE,
-              paymentId: "MANUAL_ADMIN_UPGRADE",
-              fullName: application.fullName,
-              dob: application.dob,
-              gender: application.gender,
-              mobile: application.mobile,
-              email: application.email,
-              address: application.address,
-              idType: application.idType,
-            },
-          });
-        }
       }
     } else if (status === MembershipStatus.CANCELLED || status === MembershipStatus.EXPIRED) {
-      // Inactivate any linked memberships
-      if (application.ngoId) {
-        membership = await tx.membership.updateMany({
-          where: { ngoId: application.ngoId },
-          data: {
-            status: status as MembershipStatus,
-          },
-        });
-      } else {
-        membership = await tx.membership.updateMany({
-          where: {
-            ngoId: null,
-            email: application.email,
-            tierId: application.tierId,
-          },
-          data: {
-            status: status as MembershipStatus,
-          },
-        });
-      }
+      membership = await tx.membership.updateMany({
+        where: {
+          userId: application.userId,
+        },
+        data: {
+          status: status as MembershipStatus,
+        },
+      });
     }
 
     return { application: updatedApp, membership };
@@ -830,4 +831,50 @@ export const adminDeleteApplication = asyncHandler(async (req: Request, res: Res
   return res
     .status(HTTP_STATUS.OK)
     .json(new ApiResponse(HTTP_STATUS.OK, "Membership application deleted successfully", {}));
+});
+
+/**
+ * 15. Admin Get All Memberships (Active Members)
+ * Endpoint: GET /api/v1/memberships/admin/members
+ */
+export const adminGetMemberships = asyncHandler(async (req: Request, res: Response) => {
+  const { status, tierId } = req.query;
+
+  const filter: any = {};
+  if (status) {
+    filter.status = status as MembershipStatus;
+  }
+  if (tierId) {
+    filter.tierId = tierId as string;
+  }
+
+  const memberships = await db.membership.findMany({
+    where: filter,
+    include: {
+      tier: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+          phone: true,
+          avatar: true,
+        },
+      },
+      ngo: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+      permanentAddress: true,
+      billingAddress: true,
+    },
+    orderBy: { startDate: "desc" },
+  });
+
+  return res
+    .status(HTTP_STATUS.OK)
+    .json(
+      new ApiResponse(HTTP_STATUS.OK, "Active memberships list retrieved successfully", memberships)
+    );
 });

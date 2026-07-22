@@ -23,13 +23,17 @@ export const registerVolunteer = asyncHandler(async (req: Request, res: Response
     notes,
     profilePhoto,
     dob,
+    gender,
     bloodGroup,
     streetAddress,
     pinCode,
     city,
     state,
-    aadhaarFront,
-    aadhaarBack,
+    documentUrl,
+    idType,
+    occupation,
+    emergencyContact,
+    emergencyPhone,
   } = req.body;
 
   // 1. Find or create user account for the volunteer
@@ -45,7 +49,7 @@ export const registerVolunteer = asyncHandler(async (req: Request, res: Response
         email,
         phone: phone || null,
         password: mockPassword, // Required database field
-        role: Role.SUBADMIN, // Default schema role is SUBADMIN, but has no privileges
+        role: Role.VOLUNTEER, // Volunteers have no platform login access
         avatar: profilePhoto || null,
       },
     });
@@ -95,12 +99,16 @@ export const registerVolunteer = asyncHandler(async (req: Request, res: Response
       availability: availability || null,
       notes: notes || null,
       status: VerificationStatus.PENDING,
-      profilePhoto: profilePhoto || null,
-      dob: dob ? new Date(dob) : null,
+      profilePhoto,
+      dob: new Date(dob),
       bloodGroup: bloodGroup || null,
       addressId: address.id,
-      aadhaarFront: aadhaarFront || null,
-      aadhaarBack: aadhaarBack || null,
+      documentUrl,
+      idType: idType || "AADHAAR",
+      gender,
+      occupation: occupation || null,
+      emergencyContact: emergencyContact || null,
+      emergencyPhone: emergencyPhone || null,
     },
   });
 
@@ -224,6 +232,13 @@ export const updateVolunteerStatus = asyncHandler(
       throw new ApiError(HTTP_STATUS.NOT_FOUND, "Volunteer application not found");
     }
 
+    if (application.status === VerificationStatus.APPROVED && status !== VerificationStatus.APPROVED) {
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        "Once approved, a volunteer's status cannot be modified. Delete the application if you need to remove them."
+      );
+    }
+
     // Update status and joinedAt date if approved
     const updatedApp = await db.volunteerApplication.update({
       where: { id },
@@ -267,3 +282,91 @@ export const updateVolunteerStatus = asyncHandler(
       );
   }
 );
+
+/**
+ * 5. Delete Volunteer Application (Admin / Authorized Subadmin)
+ * Endpoint: DELETE /api/v1/volunteers/admin/:id
+ */
+export const deleteVolunteer = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const id = req.params.id as string;
+
+    const application = await db.volunteerApplication.findUnique({
+      where: { id },
+    });
+
+    if (!application) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, "Volunteer application not found");
+    }
+
+    // Hard delete application and associated address
+    await db.volunteerApplication.delete({
+      where: { id },
+    });
+
+    if (application.addressId) {
+      await db.address.delete({
+        where: { id: application.addressId },
+      }).catch((err) => {
+        console.error("Failed to delete volunteer address: ", err);
+      });
+    }
+
+    return res
+      .status(HTTP_STATUS.OK)
+      .json(
+        new ApiResponse(
+          HTTP_STATUS.OK,
+          "Volunteer application deleted successfully",
+          null
+        )
+      );
+  }
+);
+
+/**
+ * 6. Check Volunteer Application Status (Public - No Login Required)
+ * Endpoint: GET /api/v1/volunteers/status
+ * Query Parameter: email
+ */
+export const checkVolunteerStatus = asyncHandler(
+  async (req: Request, res: Response) => {
+    const email = req.query.email as string;
+
+    if (!email) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Email query parameter is required");
+    }
+
+    const user = await db.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, "Volunteer profile not found");
+    }
+
+    const application = await db.volunteerApplication.findFirst({
+      where: { userId: user.id },
+    });
+
+    if (!application) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, "Volunteer application not found");
+    }
+
+    return res
+      .status(HTTP_STATUS.OK)
+      .json(
+        new ApiResponse(
+          HTTP_STATUS.OK,
+          "Volunteer application status fetched successfully",
+          {
+            status: application.status,
+            notes: application.notes,
+            joinedAt: application.joinedAt,
+            createdAt: application.createdAt,
+          }
+        )
+      );
+  }
+);
+

@@ -9,6 +9,9 @@ import { Role, UserStatus } from "../../generated/prisma/index.js";
 // 1. Get all users
 export const getAdminUsers = asyncHandler(async (req: Request, res: Response) => {
   const users = await db.user.findMany({
+    where: {
+      role: Role.SUBADMIN,
+    },
     include: {
       permissions: true,
       ngo: true,

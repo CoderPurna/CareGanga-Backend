@@ -1,6 +1,6 @@
 model Donation {
   id            String         @id @default(uuid())
-  campaignId    String
+  campaignId    String?
   userId        String
   companyId     String?
   amount        Float
@@ -13,7 +13,7 @@ model Donation {
   receiptUrl    String?
   donatedAt     DateTime       @default(now())
 
-  campaign      Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign      Campaign?      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
 }

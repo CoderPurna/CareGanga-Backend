@@ -4,13 +4,21 @@ import {
   listCsrRequests,
   getCsrDetails,
   updateCsrStatus,
+  registerCompany,
+  adminGetCompanies,
+  adminApproveCompany,
+  adminRejectCompany,
 } from "./CSR.controller.js";
 import { authMiddleware, AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
 import { validate } from "../../middlewares/validation.middleware.js";
 import { Role } from "../../generated/prisma/index.js";
 import { ApiError } from "../../utils/api-error.js";
 import { HTTP_STATUS } from "../../utils/constants.js";
-import { submitCsrRequestSchema, updateCsrStatusSchema } from "./CSR.validation.js";
+import {
+  submitCsrRequestSchema,
+  updateCsrStatusSchema,
+  registerCompanySchema,
+} from "./CSR.validation.js";
 
 const router = Router();
 
@@ -24,9 +32,10 @@ const adminOnly = (req: AuthenticatedRequest, res: Response, next: NextFunction)
 
 /**
  * ============================================================================
- * PUBLIC ROUTE (No Login Required)
+ * PUBLIC ROUTES (No Login Required)
  * ============================================================================
  */
+router.post("/register", validate(registerCompanySchema), registerCompany as any);
 router.post("/submit", validate(submitCsrRequestSchema), submitCsrRequest as any);
 
 /**
@@ -34,14 +43,13 @@ router.post("/submit", validate(submitCsrRequestSchema), submitCsrRequest as any
  * ADMIN-ONLY ROUTES (Requires Auth and strict ADMIN role)
  * ============================================================================
  */
-router.get("/admin/list", authMiddleware as any, adminOnly as any, listCsrRequests as any);
-router.get("/admin/:id", authMiddleware as any, adminOnly as any, getCsrDetails as any);
-router.patch(
-  "/admin/:id/status",
-  authMiddleware as any,
-  adminOnly as any,
-  validate(updateCsrStatusSchema),
-  updateCsrStatus as any
-);
+router.use("/admin", authMiddleware as any, adminOnly as any);
+
+router.get("/admin/list", listCsrRequests as any);
+router.get("/admin/companies", adminGetCompanies as any);
+router.patch("/admin/companies/:id/approve", adminApproveCompany as any);
+router.patch("/admin/companies/:id/reject", adminRejectCompany as any);
+router.get("/admin/:id", getCsrDetails as any);
+router.patch("/admin/:id/status", validate(updateCsrStatusSchema), updateCsrStatus as any);
 
 export default router;

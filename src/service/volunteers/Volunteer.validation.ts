@@ -30,8 +30,9 @@ export const registerVolunteerSchema = z.object({
     .max(500, "Notes cannot exceed 500 characters")
     .optional()
     .or(z.literal("")),
-  profilePhoto: z.string().url("Invalid profile photo URL").optional().or(z.literal("")),
+  profilePhoto: z.string({ message: "Profile photo is required" }).url("Invalid profile photo URL"),
   dob: z.string({ message: "Date of birth is required" }).trim(),
+  gender: z.string({ message: "Gender is required" }).trim().min(1, "Gender must be specified"),
   bloodGroup: z.string().optional().or(z.literal("")),
   streetAddress: z
     .string({ message: "Street address is required" })
@@ -49,8 +50,13 @@ export const registerVolunteerSchema = z.object({
     .string({ message: "State is required" })
     .trim()
     .min(2, "State must be at least 2 characters"),
-  aadhaarFront: z.string().url("Invalid Aadhaar front image URL").optional().or(z.literal("")),
-  aadhaarBack: z.string().url("Invalid Aadhaar back image URL").optional().or(z.literal("")),
+  documentUrl: z.string({ message: "Document image/PDF URL is required" }).url("Invalid document URL"),
+  idType: z.enum(["AADHAAR", "VOTER_ID"]).default("AADHAAR"),
+
+  // Future suggestions
+  occupation: z.string().trim().optional(),
+  emergencyContact: z.string().trim().optional(),
+  emergencyPhone: z.string().trim().optional(),
 });
 
 /**
