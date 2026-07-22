@@ -11,6 +11,25 @@ import { DonationStatus, Role } from "../../generated/prisma/index.js";
 import { generateAndSendDonationReceipt } from "../../utils/receipt-generator.js";
 
 /**
+ * Helper function to create an Address record inside a transaction if address data is provided.
+ */
+const createAddressRecord = async (tx: any, addressData?: any) => {
+  if (!addressData || (!addressData.line1 && !addressData.city)) return null;
+  const newAddress = await tx.address.create({
+    data: {
+      line1: addressData.line1 || "N/A",
+      line2: addressData.line2 || null,
+      city: addressData.city || "N/A",
+      district: addressData.district || null,
+      state: addressData.state || "N/A",
+      country: addressData.country || "India",
+      postalCode: addressData.postalCode || "000000",
+    },
+  });
+  return newAddress.id;
+};
+
+/**
  * Helper function to resolve or create a donor user profile.
  */
 const getOrCreateDonorUser = async (
@@ -47,9 +66,16 @@ const getOrCreateDonorUser = async (
       },
     });
   } else {
-    // If user exists and doesn't have phone, update it
+    // If user exists and doesn't have phone, update it safely if phone is not taken
     const updateData: any = {};
-    if (!user.phone && mobile) updateData.phone = mobile;
+    if (!user.phone && mobile) {
+      const phoneTaken = await db.user.findFirst({
+        where: { phone: mobile, NOT: { id: user.id } },
+      });
+      if (!phoneTaken) {
+        updateData.phone = mobile;
+      }
+    }
     if (
       user.role !== Role.ADMIN &&
       user.role !== Role.SUBADMIN &&
@@ -140,6 +166,7 @@ export const verifyPayment = asyncHandler(async (req: AuthenticatedRequest, res:
     email,
     fullName,
     mobile,
+    address,
   } = req.body;
 
   // Resolve user (logged-in or guest)
@@ -178,6 +205,9 @@ export const verifyPayment = asyncHandler(async (req: AuthenticatedRequest, res:
 
   // 4. Create Payment and Donation records in a single database transaction
   const result = await db.$transaction(async (tx) => {
+    // Create address record if address details are provided
+    const addressId = await createAddressRecord(tx, address);
+
     // Create payment entry
     const payment = await tx.payment.create({
       data: {
@@ -196,6 +226,7 @@ export const verifyPayment = asyncHandler(async (req: AuthenticatedRequest, res:
         campaignId: campaignId || null,
         userId: resolvedUserId,
         companyId: companyProfile ? companyProfile.id : null,
+        addressId: addressId || null,
         amount,
         currency: "INR",
         paymentMethod: "razorpay",
@@ -210,6 +241,7 @@ export const verifyPayment = asyncHandler(async (req: AuthenticatedRequest, res:
             title: true,
           },
         },
+        address: true,
       },
     });
 
@@ -237,7 +269,7 @@ export const verifyPayment = asyncHandler(async (req: AuthenticatedRequest, res:
  * Endpoint: POST /api/v1/payments/simulate-success
  */
 export const simulateSuccess = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const { campaignId, amount, anonymous = false, message, email, fullName, mobile } = req.body;
+  const { campaignId, amount, anonymous = false, message, email, fullName, mobile, address } = req.body;
 
   // Resolve user (logged-in or guest)
   const resolvedUserId = await getOrCreateDonorUser(req.user, email, fullName, mobile);
@@ -261,6 +293,9 @@ export const simulateSuccess = asyncHandler(async (req: AuthenticatedRequest, re
   });
 
   const result = await db.$transaction(async (tx) => {
+    // Create address record if address details are provided
+    const addressId = await createAddressRecord(tx, address);
+
     const payment = await tx.payment.create({
       data: {
         userId: resolvedUserId,
@@ -277,6 +312,7 @@ export const simulateSuccess = asyncHandler(async (req: AuthenticatedRequest, re
         campaignId: campaignId || null,
         userId: resolvedUserId,
         companyId: companyProfile ? companyProfile.id : null,
+        addressId: addressId || null,
         amount,
         currency: "INR",
         paymentMethod: "simulated",
@@ -291,6 +327,7 @@ export const simulateSuccess = asyncHandler(async (req: AuthenticatedRequest, re
             title: true,
           },
         },
+        address: true,
       },
     });
 
